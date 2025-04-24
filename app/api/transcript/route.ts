@@ -11,9 +11,11 @@ export async function POST(req: NextRequest) {
 
         const cleaned = (rawTranscript as any[]).map((item) => ({
             text: item.text,
-            start: item.start, 
-            duration: item.duration,
+            start: item.offset ?? 0, 
+            duration: Number(item.duration) ?? 0,
         }));
+       
+
 
         return NextResponse.json({ transcript: cleaned });
     } catch (err) {
