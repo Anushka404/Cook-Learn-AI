@@ -59,7 +59,7 @@ ${text}
                 timestamp,
                 output: res.text,
             });
-            await new Promise((r) => setTimeout(r, 1500)); // 1.5s delay
+            await new Promise((r) => setTimeout(r, 25000)); // delay
         } catch (error) {
             console.error("Error generating summary:", error);
             summaries.push({

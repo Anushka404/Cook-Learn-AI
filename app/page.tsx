@@ -7,6 +7,8 @@ export default function Home() {
   const router = useRouter();
   const [input, setInput] = useState("");
 
+
+
   const extractVideoId = (url: string): string | null => {
     try {
       const parsed = new URL(url);
@@ -20,6 +22,9 @@ export default function Home() {
     }
     return null;
   };
+
+
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
