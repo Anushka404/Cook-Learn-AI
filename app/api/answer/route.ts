@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         // Query Pinecone for top transcript chunks
         const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
         const pineconeRes = await index.query({
-            topK: 5,
+            topK: 8,
             vector: queryEmbedding,
             includeMetadata: true,
             filter: { videoId },
@@ -29,16 +29,24 @@ export async function POST(req: NextRequest) {
             .filter(Boolean)
             .join("\n\n");
 
-        const prompt = `
-You are an expert assistant helping a student understand a lecture. 
-Use the transcript context below to answer the user's question clearly and accurately.
-
-Transcript context:
-${contextChunks}
-
-Question: ${question}
-Answer:
-`;
+        const prompt = [
+            {
+                role: "user",
+                parts: [
+                    {
+                        text: `You are a helpful AI tutor. Use the transcript chunks provided to answer the user's question clearly and concisely. Only use relevant information. If the answer is not in the transcript, say: "The transcript does not provide a direct answer to that question."`
+                    }
+                ]
+            },
+            {
+                role: "user",
+                parts: [
+                    {
+                        text: `Transcript Chunks:\n${contextChunks}\n\nQuestion: ${question}`
+                    }
+                ]
+            }
+        ];
 
         const geminiRes = await ai.models.generateContent({
             model: "gemini-2.0-flash",

@@ -37,6 +37,15 @@ export default function VideoPage() {
                 const data = await res.json();
                 if (data.transcript) {
                     setTranscript(data.transcript);
+
+                    await fetch("/api/embed", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            transcript: data.transcript,
+                            videoId: videoId,
+                        }),
+                    });
                 }
 
                 setSummarizing(true);
