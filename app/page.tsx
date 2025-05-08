@@ -23,37 +23,44 @@ export default function Home() {
     return null;
   };
 
-
-
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (type: "summarize" | "cook") => {
     const videoId = extractVideoId(input);
     if (!videoId) {
       alert("Invalid YouTube URL");
       return;
     }
-    router.push(`/${videoId}`);
+
+    const path = type === "cook" ? `cook/${videoId}` : `${videoId}`;
+    router.push(path);
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-black">
-      <h1 className="text-3xl font-bold mb-6">🎥 AI-Powered Video Summarizer</h1>
-      <form onSubmit={handleSubmit} className="w-full max-w-md">
+      <h1 className="text-3xl font-bold mb-6">🎥 AI-Powered Video Assistant</h1>
+      <div className="w-full max-w-md">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Paste YouTube video URL here..."
-          className="w-full p-3 border rounded mb-4"
+          placeholder="Enter YouTube URL..."
+          className="w-full p-3 border border-gray-300 rounded mb-4 bg-white text-black"
         />
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700 transition"
-        >
-          Analyze Video
-        </button>
-      </form>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={() => handleSubmit("summarize")}
+            className="w-full bg-purple-700 hover:bg-purple-500 text-white p-3 rounded"
+          >
+            📘 Summarize Lecture
+          </button>
+
+          <button
+            onClick={() => handleSubmit("cook")}
+            className="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded"
+          >
+            🍳 Let’s Cook!
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

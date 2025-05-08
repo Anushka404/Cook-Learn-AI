@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
                 role: "user",
                 parts: [
                     {
-                        text: `You are a helpful AI tutor. Use the transcript chunks provided to answer the user's question clearly and concisely. Only use relevant information. If the answer is not in the transcript, say: "The transcript does not provide a direct answer to that question."`
+                        text: `You are a helpful AI tutor. Use the transcript chunks provided to answer the user's question clearly and in detail. Only use relevant information. If the answer is not in the transcript, say: "The transcript does not provide a direct answer to that question."`
                     }
                 ]
             },
