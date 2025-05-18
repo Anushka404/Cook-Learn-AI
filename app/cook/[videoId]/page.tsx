@@ -14,13 +14,38 @@ export default function CookPage() {
     useEffect(() => {
         async function fetchRecipe() {
             try {
+                const transcriptRes = await fetch("/api/transcript", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ videoId }),
+                });
+                const { transcript } = await transcriptRes.json();
+
+                if (!transcript) throw new Error("Transcript not found");
+
+                await fetch("/api/embed", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        transcript,
+                        videoId: `cook-${videoId}`,
+                    }),
+                });
+
                 const res = await fetch(`/api/summarize-cook`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ videoId }),
                 });
-                const data = await res.json();
 
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    setError(errorData.error || "Failed to fetch recipe");
+                    setLoading(false);
+                    return;
+                }
+
+                const data = await res.json();
                 setTitle(data?.title || "");
                 setSummary(data?.summary || "");
                 setIngredients(data?.ingredients || []);
@@ -28,6 +53,8 @@ export default function CookPage() {
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching recipe:", error);
+                setLoading(false);
+            } finally {
                 setLoading(false);
             }
         }
