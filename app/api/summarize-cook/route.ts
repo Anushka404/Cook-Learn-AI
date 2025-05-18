@@ -15,8 +15,10 @@ export async function POST(req: NextRequest) {
         const result = await pineconeIndex.namespace(`cook-${videoId}`).query({
             topK: 100,
             includeMetadata: true,
-            vector: Array(1024).fill(0), // or a dummy vector if required
+            vector: Array(1024).fill(0),
         });
+        console.log("Summarizing cook for video:", videoId);
+        console.log("Querying Pinecone namespace:", `cook-${videoId}`);
 
 
         const chunks = result.matches
@@ -56,7 +58,8 @@ Return JSON:
             contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
 
-        const textOutput = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        let textOutput = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        textOutput = textOutput.trim().replace(/^```json\s*/, "").replace(/```$/, "");
 
         try {
             const json = JSON.parse(textOutput);

@@ -44,6 +44,7 @@ export default function VideoPage() {
                         body: JSON.stringify({
                             transcript: data.transcript,
                             videoId: videoId,
+                            mode: "lecture",
                         }),
                     });
                 }

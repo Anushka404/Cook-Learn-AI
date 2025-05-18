@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
         // Query Pinecone for similar vectors
         const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
-        const result = await index.query({
+        const result = await index.namespace(`lecture-${videoId}`).query({
             topK: 5,
             vector: queryEmbedding,
             includeMetadata: true,

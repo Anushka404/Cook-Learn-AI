@@ -28,7 +28,8 @@ export default function CookPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         transcript,
-                        videoId: `cook-${videoId}`,
+                        videoId: videoId,
+                        mode: "cook",
                     }),
                 });
 
