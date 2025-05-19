@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function CookPage() {
     const { videoId } = useParams<{ videoId: string }>();
@@ -10,6 +10,7 @@ export default function CookPage() {
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [summary, setSummary] = useState("");
+    const router = useRouter();
 
     useEffect(() => {
         async function fetchRecipe() {
@@ -64,6 +65,10 @@ export default function CookPage() {
     if (loading) return <div className="p-4 text-xl">Loading recipe...</div>;
     if (error) return <div className="p-4 text-red-600">{error}</div>;
 
+    const handleCook = () => {
+        router.push(`/cook/${videoId}/start`);
+    };
+
     return (
         <div className="p-6 space-y-6">
             <h1 className="text-3xl font-bold text-amber-700">{title}</h1>
@@ -76,7 +81,9 @@ export default function CookPage() {
                 ))}
             </ul>
 
-            <button className="mt-6 bg-amber-600 text-white px-4 py-2 rounded shadow">
+            <button
+                onClick ={() => handleCook()}
+                className="mt-6 bg-amber-600 text-white px-4 py-2 rounded shadow">
                 Let the Cooking Begin
             </button>
         </div>

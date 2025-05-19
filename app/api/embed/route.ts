@@ -12,9 +12,9 @@ export async function POST(req: NextRequest) {
         }
 
         const namespace = `${mode}-${videoId}`;
-        // console.log("Embedding for namespace:", namespace);
-        // console.log("Transcript length:", transcript.length);
-        // console.log("First line:", transcript[0]?.text);
+        console.log("Embedding for namespace:", namespace);
+        console.log("Transcript length:", transcript.length);
+        console.log("First line:", transcript[0]?.text);
 
         const chunks = chunkTranscript(transcript);
         const texts = chunks.map((chunk) => chunk.text.trim());
