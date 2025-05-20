@@ -20,6 +20,7 @@ export default function CookingStepsPage() {
             "Pour in half-and-half and stir until it thickens.",
             "Mix in the cooked pasta and toss to coat evenly.",
             "Garnish with chopped parsley and serve hot.",
+            "Garnish with chopped parsley and serve hot.",
         ]);
     }, []);
 
