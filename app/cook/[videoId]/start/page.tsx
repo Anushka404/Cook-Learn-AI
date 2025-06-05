@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 
 export default function CookingStepsPage() {
@@ -11,7 +11,7 @@ export default function CookingStepsPage() {
     const [stepIndex, setStepIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1.0);
-
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         setSteps([
@@ -28,6 +28,11 @@ export default function CookingStepsPage() {
 
     async function playVoice(text: string, lang: string = "en", speed = 1.0) {
         try {
+            //stop any current playing audio
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
             const res = await fetch("/api/tts-elevenlabs", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -48,6 +53,7 @@ export default function CookingStepsPage() {
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
             audio.playbackRate = speed;
+            audioRef.current = audio;
 
             audio.onplay = () => setIsSpeaking(true);
             audio.onended = () => {
@@ -70,8 +76,8 @@ export default function CookingStepsPage() {
 
     useEffect(() => {
         if (!hasStarted || steps.length === 0 || stepIndex >= steps.length) return;
-        playVoice(steps[stepIndex]);
-    }, [stepIndex, steps, hasStarted]);
+        playVoice(steps[stepIndex], "en", playbackRate);
+    }, [stepIndex, steps, hasStarted, playbackRate]);
 
     const nextStep = () => {
         if (stepIndex < steps.length - 1) {
@@ -99,20 +105,32 @@ export default function CookingStepsPage() {
                         {steps[stepIndex] || "You’ve finished all steps!"}
                     </div>
 
-                        {/* Speed Controls */}
                         <div className="flex justify-center gap-4 mt-4">
                             <button
-                                onClick={() => setPlaybackRate((rate) => Math.max(0.5, rate - 0.25))}
-                                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600 disabled:opacity-50"
-                                disabled={isSpeaking}
+                                onClick={() => { setPlaybackRate((prev) => {
+                                    const newRate = Math.max(0.5, prev - 0.25);
+                                    if (audioRef.current) {
+                                        audioRef.current.playbackRate = newRate;
+                                    }
+                                    return newRate;
+                                });
+                            }}
+                                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600"
                             >
                                 ⏪ Slower ({playbackRate.toFixed(2)}x)
                             </button>
 
                             <button
-                                onClick={() => setPlaybackRate((rate) => Math.min(2.0, rate + 0.25))}
-                                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600 disabled:opacity-50"
-                                disabled={isSpeaking}
+                                onClick={() => {
+                                    setPlaybackRate((prev) => {
+                                        const newRate = Math.max(0.5, prev + 0.25);
+                                        if (audioRef.current) {
+                                            audioRef.current.playbackRate = newRate;
+                                        }
+                                        return newRate;
+                                    });
+                                }}
+                                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600"
                             >
                                 ⏩ Faster ({playbackRate.toFixed(2)}x)
                             </button>
