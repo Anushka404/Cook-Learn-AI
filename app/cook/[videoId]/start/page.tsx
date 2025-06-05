@@ -10,6 +10,8 @@ export default function CookingStepsPage() {
     const [steps, setSteps] = useState<string[]>([]);
     const [stepIndex, setStepIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1.0);
+
 
     useEffect(() => {
         setSteps([
@@ -24,35 +26,39 @@ export default function CookingStepsPage() {
         ]);
     }, []);
 
-    async function playVoice(text: string) {
+    async function playVoice(text: string, lang: string = "en", speed = 1.0) {
         try {
             const res = await fetch("/api/tts-elevenlabs", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text }),
+                body: JSON.stringify({ text, lang }),
             });
 
             const arrayBuffer = await res.arrayBuffer();
             const audioBlob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-            console.log("Blob type:", audioBlob.type); // should be "audio/mpeg"
+
+            console.log("Blob type:", audioBlob.type);
             console.log("Blob size:", audioBlob.size);
+
             if (audioBlob.size === 0) {
-                console.warn("Empty audio received from ElevenLabs");
+                console.warn("Empty audio received from TTS");
                 return;
             }
 
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
+            audio.playbackRate = speed;
 
             audio.onplay = () => setIsSpeaking(true);
             audio.onended = () => {
                 setIsSpeaking(false);
-                URL.revokeObjectURL(audioUrl); // Clean up 
-            }
+                URL.revokeObjectURL(audioUrl); 
+            };
             audio.onerror = (err) => {
                 console.error("Audio playback failed", err);
                 setIsSpeaking(false);
             };
+
             await audio.play();
 
         } catch (error) {
@@ -60,6 +66,7 @@ export default function CookingStepsPage() {
             setIsSpeaking(false);
         }
     }
+    
 
     useEffect(() => {
         if (!hasStarted || steps.length === 0 || stepIndex >= steps.length) return;
@@ -92,13 +99,34 @@ export default function CookingStepsPage() {
                         {steps[stepIndex] || "You’ve finished all steps!"}
                     </div>
 
-                    <button
-                        onClick={nextStep}
-                        disabled={isSpeaking}
-                        className="mt-6 px-6 py-3 rounded bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
-                    >
-                        {stepIndex < steps.length - 1 ? "Next Step" : "Finish Cooking"}
-                    </button>
+                        {/* Speed Controls */}
+                        <div className="flex justify-center gap-4 mt-4">
+                            <button
+                                onClick={() => setPlaybackRate((rate) => Math.max(0.5, rate - 0.25))}
+                                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600 disabled:opacity-50"
+                                disabled={isSpeaking}
+                            >
+                                ⏪ Slower ({playbackRate.toFixed(2)}x)
+                            </button>
+
+                            <button
+                                onClick={() => setPlaybackRate((rate) => Math.min(2.0, rate + 0.25))}
+                                className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600 disabled:opacity-50"
+                                disabled={isSpeaking}
+                            >
+                                ⏩ Faster ({playbackRate.toFixed(2)}x)
+                            </button>
+                        </div>
+
+                        {/* Next Step Button */}
+                        <button
+                            onClick={nextStep}
+                            disabled={isSpeaking}
+                            className="mt-6 px-6 py-3 rounded bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
+                        >
+                            {stepIndex < steps.length - 1 ? "Next Step" : "Finish Cooking"}
+                        </button>
+
                 </>
             )}
         </div>

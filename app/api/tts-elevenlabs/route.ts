@@ -1,43 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-    const { text } = await req.json();
+    const { text, lang = "en" } = await req.json(); // 🌍 Support optional `lang`
 
     if (!text) {
         return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-    const voiceId = process.env.ELEVENLABS_VOICE_ID;
-
     try {
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "xi-api-key": apiKey!,
-                "Accept": "audio/mpeg",
-            },
-            body: JSON.stringify({
-                text,
-                model_id: "eleven_multilingual_v2",
-                output_format: "mp3_44100_128",
-                voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.75,
-                },
-            }),
-        });
-        const contentType = res.headers.get("Content-Type");
-        console.log("🎧 ElevenLabs response headers:", contentType);
+        // ✅ Google Translate TTS endpoint (undocumented but public)
+        const baseURL = "https://translate.google.com/translate_tts";
 
-        if (!res.ok || !contentType?.includes("audio/mpeg")) {
-            const error = await res.json();
-            console.error("❌ ElevenLabs Error Response:", error);
-            return NextResponse.json({ error: error.message || "ElevenLabs TTS failed" }, { status: 500 });
-          }
-        const audioBuffer = await res.arrayBuffer();
-      
+        // 🧠 TTS requires basic params: client, q (text), tl (target language), etc.
+        const url = `${baseURL}?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob`;
+
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0", // ⚠️ Required or Google blocks it
+            },
+        });
+
+        if (!response.ok || !response.headers.get("Content-Type")?.includes("audio/mpeg")) {
+            const errorText = await response.text();
+            console.error("❌ Google TTS Error:", errorText);
+            return NextResponse.json({ error: "Failed to fetch audio" }, { status: 500 });
+        }
+
+        const audioBuffer = await response.arrayBuffer();
+
+        // ✅ Return audio as inline MP3
         return new NextResponse(audioBuffer, {
             status: 200,
             headers: {
@@ -45,8 +36,9 @@ export async function POST(req: NextRequest) {
                 "Content-Disposition": 'inline; filename="speech.mp3"',
             },
         });
+
     } catch (err) {
         console.error("TTS Error:", err);
-        return NextResponse.json({ error: "Failed to generate speech" }, { status: 500 });
+        return NextResponse.json({ error: "TTS generation failed" }, { status: 500 });
     }
-      }
+}
