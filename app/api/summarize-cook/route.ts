@@ -51,8 +51,6 @@ Return JSON:
 }
 `;
 
-
-        // Gemini call using the ai.models.generateContent() format
         const geminiRes = await ai.models.generateContent({
             model: "gemini-2.0-flash",
             contents: [{ role: "user", parts: [{ text: prompt }] }],

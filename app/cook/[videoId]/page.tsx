@@ -66,6 +66,9 @@ export default function CookPage() {
     if (error) return <div className="p-4 text-red-600">{error}</div>;
 
     const handleCook = () => {
+        if (steps.length > 0) {
+            localStorage.setItem(`cook-steps-${videoId}`, JSON.stringify(steps));
+        }
         router.push(`/cook/${videoId}/start`);
     };
 

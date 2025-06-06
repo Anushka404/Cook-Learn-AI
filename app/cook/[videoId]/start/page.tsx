@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 
@@ -8,23 +7,37 @@ export default function CookingStepsPage() {
     const router = useRouter();
     const [hasStarted, setHasStarted] = useState(false);
     const [steps, setSteps] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
     const [stepIndex, setStepIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        setSteps([
-            "Boil the pasta in salted water until al dente. Reserve 1 cup of pasta water before draining.",
-            "Chop onions, garlic, and mushrooms while pasta cooks.",
-            "Sauté garlic and onions in olive oil until translucent.",
-            "Add mushrooms, salt, pepper, and cook until soft.",
-            "Pour in half-and-half and stir until it thickens.",
-            "Mix in the cooked pasta and toss to coat evenly.",
-            "Garnish with chopped parsley and serve hot.",
-            "Garnish with chopped parsley and serve hot.",
-        ]);
-    }, []);
+        const storedSteps = localStorage.getItem(`cook-steps-${videoId}`);
+        if (storedSteps) {
+            try {
+                const parsedSteps = JSON.parse(storedSteps);
+                if (Array.isArray(parsedSteps)) {
+                    setSteps(parsedSteps);
+                }
+            } catch (err) {
+                console.error("Failed to parse stored steps:", err);
+            }
+        } else {
+            console.warn("No cooking steps found in localStorage");
+        }
+        setLoading(false);
+    }, [videoId]);   
+
+    useEffect(() => {
+        if (!hasStarted || steps.length === 0 || stepIndex >= steps.length) return;
+        playVoice(steps[stepIndex], "en", playbackRate);
+    }, [stepIndex, steps, hasStarted, playbackRate]);
+
+    if (loading) {
+        return <div className="text-white text-xl text-center p-6">Loading cooking steps...</div>;
+    }
 
     async function playVoice(text: string, lang: string = "en", speed = 1.0) {
         try {
@@ -72,18 +85,13 @@ export default function CookingStepsPage() {
             setIsSpeaking(false);
         }
     }
-    
-
-    useEffect(() => {
-        if (!hasStarted || steps.length === 0 || stepIndex >= steps.length) return;
-        playVoice(steps[stepIndex], "en", playbackRate);
-    }, [stepIndex, steps, hasStarted, playbackRate]);
 
     const nextStep = () => {
         if (stepIndex < steps.length - 1) {
             setStepIndex(prev => prev + 1);
         } else {
             alert("You have completed all the steps!");
+            localStorage.removeItem(`cook-steps-${videoId}`);
             router.push(`/cook/${videoId}`);
         }
     };
