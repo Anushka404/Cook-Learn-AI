@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
+type SpeechRecognitionEvent = any;
 
 export default function CookingStepsPage() {
     const { videoId } = useParams<{ videoId: string }>();
@@ -31,9 +32,15 @@ export default function CookingStepsPage() {
     }, [videoId]);   
 
     useEffect(() => {
-        if (!hasStarted || steps.length === 0 || stepIndex >= steps.length) return;
+        if (!hasStarted || steps.length === 0 || stepIndex >= steps.length)
+            return;
         playVoice(steps[stepIndex], "en", playbackRate);
     }, [stepIndex, steps, hasStarted, playbackRate]);
+
+    useEffect(() => {
+        if (hasStarted) 
+            startDeepgramMicRecognition();
+    }, [hasStarted]);    
 
     if (loading) {
         return <div className="text-white text-xl text-center p-6">Loading cooking steps...</div>;
@@ -86,6 +93,50 @@ export default function CookingStepsPage() {
         }
     }
 
+    async function startDeepgramMicRecognition() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        let chunks: Blob[] = [];
+
+        recorder.ondataavailable = (e) => chunks.push(e.data);
+
+        recorder.onstop = async () => {
+            const blob = new Blob(chunks, { type: 'audio/wav' });
+            const arrayBuffer = await blob.arrayBuffer();
+            const base64Audio = btoa(
+                new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+            );
+
+            const res = await fetch('/api/deepgram', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audio: base64Audio }),
+            });
+
+            const data = await res.json();
+            console.log("[Deepgram Result]", data.transcript);
+
+            const text = data.transcript.toLowerCase();
+
+            if (text.includes("next")) {
+                nextStep();
+            } else if (text.includes("repeat") || text.includes("again")) {
+                playVoice(steps[stepIndex], "en", playbackRate);
+            } else if (text.includes("back") || text.includes("previous")) {
+                if (stepIndex > 0) setStepIndex(prev => prev - 1);
+            }
+
+            setTimeout(startDeepgramMicRecognition, 1000);
+        };
+
+        recorder.start();
+        setTimeout(() => {
+            if (recorder.state === 'recording') {
+                recorder.stop();
+            }
+        }, 3000);
+    }
+    
     const nextStep = () => {
         if (stepIndex < steps.length - 1) {
             setStepIndex(prev => prev + 1);
@@ -152,6 +203,12 @@ export default function CookingStepsPage() {
                         >
                             {stepIndex < steps.length - 1 ? "Next Step" : "Finish Cooking"}
                         </button>
+                        {hasStarted && (
+                            <div className="mt-4 animate-pulse text-amber-400">
+                                🎙️ Listening for voice commands...
+                            </div>
+                        )}
+
 
                 </>
             )}
