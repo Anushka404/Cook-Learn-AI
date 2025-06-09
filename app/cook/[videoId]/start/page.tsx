@@ -12,6 +12,7 @@ export default function CookingStepsPage() {
     const [stepIndex, setStepIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1.0);
+    const [repeatTrigger, setRepeatTrigger] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY!);
@@ -38,9 +39,11 @@ export default function CookingStepsPage() {
     }, [videoId]);
 
     useEffect(() => {
-        if (!hasStarted || steps.length === 0 || stepIndex >= steps.length) return;
+        if (!hasStarted || steps.length === 0 || stepIndex >= steps.length)
+            return;
+
         playVoice(steps[stepIndex], "en", playbackRate);
-    }, [stepIndex, steps, hasStarted, playbackRate]);
+    }, [stepIndex, steps, hasStarted, playbackRate, repeatTrigger]);
 
     useEffect(() => {
         if (hasStarted) {
@@ -162,11 +165,11 @@ export default function CookingStepsPage() {
     }
 
     function handleVoiceCommand(text: string) {
-        if (text.includes("next")) {
+        if (text.includes("next") || text.includes("continue") || text.includes("go on") || text.includes("forward")) {
             nextStep();
-        } else if (text.includes("repeat") || text.includes("again")) {
+        } else if (text.includes("repeat") || text.includes("again") || text.includes("do it again")) {
             repeatCurrentStep();
-        } else if (text.includes("back") || text.includes("previous")) {
+        } else if (text.includes("back") || text.includes("previous") || text.includes("go back")) {
             prevStep();
         } else {
             console.log("Unrecognized command:", text);
@@ -175,20 +178,13 @@ export default function CookingStepsPage() {
     }
 
     function repeatCurrentStep() {
-        setStepIndex((prev) => {
-            const step = steps[prev];
-            if (!step) {
-                console.warn("No step to repeat at index", prev);
-                return prev;
-            }
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-            }
-            console.log("Repeating step:", prev, step);
-            playVoice(step, "en", playbackRate);
-            return prev;
-        });
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+
+        console.log("Repeating step:", stepIndex, steps[stepIndex]);
+        setRepeatTrigger((prev) => !prev); // toggle to force re-trigger
     }
 
     const nextStep = () => {
@@ -209,13 +205,7 @@ export default function CookingStepsPage() {
         setStepIndex((prev) => {
             if (prev > 0) {
                 const newIndex = prev - 1;
-                const step = steps[newIndex];
-                if (!step) {
-                    console.warn("No step found at previous index", newIndex);
-                    return prev;
-                }
                 console.log("Previous step index:", newIndex);
-                playVoice(step, "en", playbackRate);
                 return newIndex;
             } else {
                 alert("You are already at the first step!");
@@ -223,7 +213,7 @@ export default function CookingStepsPage() {
             }
         });
     };
-
+    
     return (
         <div className="p-6 max-w-xl mx-auto text-center text-white">
             {!hasStarted ? (
