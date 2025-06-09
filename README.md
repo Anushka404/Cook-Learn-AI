@@ -25,7 +25,7 @@
 - **Framework**: Next.js (Full Stack with App Router)
 - **Languages**: TypeScript
 - **Styling**: Tailwind CSS  
-- **AI & APIs**: Gemini, Pinecone, Cohere, Deepgram, ElevenLabs  
+- **AI & APIs**: Gemini, Pinecone, Cohere, Deepgram  
 - **Dev Tools**: Git, Postman, Visual Studio Code, npm
 
 ---
@@ -46,7 +46,6 @@ GEMINI_API_KEY=your_gemini_key
 PINECONE_API_KEY=your_pinecone_key
 COHERE_API_KEY=your_cohere_key
 DEEPGRAM_API_KEY=your_deepgram_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
 
 # 4. Run the development server
 npm run dev
