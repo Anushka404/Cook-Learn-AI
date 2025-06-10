@@ -277,7 +277,21 @@ export default function CookingStepsPage() {
                 <>
                     <h1 className="text-2xl font-bold text-amber-500">Let’s Cook!</h1>
 
-                    <div className="mt-6 text-lg bg-gray-800 p-4 rounded shadow-lg min-h-[120px] flex items-center justify-center">
+                    <div className="text-sm text-amber-400 font-medium mt-4">
+                        Step {stepIndex + 1} of {steps.length}
+                    </div>
+                    
+                    <div className="w-full h-2 bg-gray-700 rounded overflow-hidden mt-2">
+                        <div
+                            className="h-full bg-amber-500 transition-all duration-300"
+                            style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
+                        />
+                    </div>
+
+                    <div
+                        key={stepIndex}
+                        className="mt-6 text-lg bg-gray-800 p-4 rounded shadow-lg min-h-[120px] flex items-center justify-center transition-opacity duration-300 opacity-100"
+                    >
                         {steps[stepIndex] || "You’ve finished all steps!"}
                     </div>
 
@@ -336,4 +350,5 @@ export default function CookingStepsPage() {
             )}
         </div>
     );
+    
 }
