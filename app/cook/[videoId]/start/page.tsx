@@ -19,6 +19,11 @@ export default function CookingStepsPage() {
     const liveRef = useRef<any>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
+    const wordToNumber: Record<string, number> = {
+        one: 1, two: 2, three: 3, four: 4, five: 5,
+        six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+        eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+    };    
 
     useEffect(() => {
         const storedSteps = localStorage.getItem(`cook-steps-${videoId}`);
@@ -171,6 +176,27 @@ export default function CookingStepsPage() {
             repeatCurrentStep();
         } else if (text.includes("back") || text.includes("previous") || text.includes("go back")) {
             prevStep();
+        } else if (text.includes("pause")) {
+            pauseAudio();
+        } else if (text.includes("resume") || text.includes("continue")) {
+            resumeAudio();
+        } else if (text.includes("step")) {
+            const matchDigit = text.match(/step\s+(\d+)/);
+            const matchWord = text.match(/step\s+(\w+)/);
+
+            let stepNum: number | null = null;
+
+            if (matchDigit) {
+                stepNum = parseInt(matchDigit[1]);
+            } else if (matchWord && wordToNumber[matchWord[1]]) {
+                stepNum = wordToNumber[matchWord[1]];
+            }
+
+            if (stepNum !== null) {
+                goToStep(stepNum - 1); 
+            } else {
+                playVoice("Sorry, I couldn't understand the step number.", "en", playbackRate);
+            }         
         } else {
             console.log("Unrecognized command:", text);
             playVoice("Sorry, I didn't understand that. Please try again.", "en", playbackRate);
@@ -213,6 +239,30 @@ export default function CookingStepsPage() {
             }
         });
     };
+
+    function pauseAudio() {
+        if (audioRef.current && !audioRef.current.paused) {
+            audioRef.current.pause();
+            console.log("Audio paused");
+        }
+    }
+
+    function resumeAudio() {
+        if (audioRef.current && audioRef.current.paused) {
+            audioRef.current.play();
+            console.log("Audio resumed");
+        }
+    }
+
+    function goToStep(index: number) {
+        if (index >= 0 && index < steps.length) {
+            setStepIndex(index);
+            console.log(`Jumping to step ${index + 1}`);
+        } else {
+            playVoice("That step number is out of range.", "en", playbackRate);
+        }
+    }
+    
     
     return (
         <div className="p-6 max-w-xl mx-auto text-center text-white">
