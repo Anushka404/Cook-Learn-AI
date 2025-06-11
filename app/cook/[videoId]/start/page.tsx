@@ -170,38 +170,53 @@ export default function CookingStepsPage() {
     }
 
     function handleVoiceCommand(text: string) {
-        if (text.includes("next") || text.includes("continue") || text.includes("go on") || text.includes("forward")) {
-            nextStep();
-        } else if (text.includes("repeat") || text.includes("again") || text.includes("do it again")) {
-            repeatCurrentStep();
-        } else if (text.includes("back") || text.includes("previous") || text.includes("go back")) {
-            prevStep();
-        } else if (text.includes("pause")) {
-            pauseAudio();
-        } else if (text.includes("resume") || text.includes("continue")) {
-            resumeAudio();
-        } else if (text.includes("step")) {
-            const matchDigit = text.match(/step\s+(\d+)/);
-            const matchWord = text.match(/step\s+(\w+)/);
+        const normalized = text.toLowerCase();
 
-            let stepNum: number | null = null;
+        const knownCommands = [
+            "next", "continue", "go on", "forward",
+            "repeat", "again", "do it again",
+            "back", "previous", "go back",
+            "pause", "resume",
+            "step", "go to step"
+        ];
 
-            if (matchDigit) {
-                stepNum = parseInt(matchDigit[1]);
-            } else if (matchWord && wordToNumber[matchWord[1]]) {
-                stepNum = wordToNumber[matchWord[1]];
-            }
+        const isKnown = knownCommands.some(cmd => normalized.includes(cmd));
 
-            if (stepNum !== null) {
-                goToStep(stepNum - 1); 
+        if (isKnown) {
+            //known commands
+            if (normalized.includes("next") || normalized.includes("continue") || normalized.includes("go on") || normalized.includes("forward")) {
+                nextStep();
+            } else if (normalized.includes("repeat") || normalized.includes("again") || normalized.includes("do it again")) {
+                repeatCurrentStep();
+            } else if (normalized.includes("back") || normalized.includes("previous") || normalized.includes("go back")) {
+                prevStep();
+            } else if (normalized.includes("pause")) {
+                pauseAudio();
+            } else if (normalized.includes("resume") || normalized.includes("continue")) {
+                resumeAudio();
+            } else if (normalized.includes("step")) {
+                const matchDigit = normalized.match(/step\s+(\d+)/);
+                const matchWord = normalized.match(/step\s+(\w+)/);
+                let stepNum: number | null = null;
+                if (matchDigit) stepNum = parseInt(matchDigit[1]);
+                else if (matchWord && wordToNumber[matchWord[1]]) stepNum = wordToNumber[matchWord[1]];
+                if (stepNum !== null) goToStep(stepNum - 1);
+                else playVoice("Sorry, I couldn't understand the step number.", "en", playbackRate);
             } else {
-                playVoice("Sorry, I couldn't understand the step number.", "en", playbackRate);
-            }         
+                playVoice("Sorry, I didn't understand that command.", "en", playbackRate);
+            }
         } else {
-            console.log("Unrecognized command:", text);
-            playVoice("Sorry, I didn't understand that. Please try again.", "en", playbackRate);
+            // Possibly a doubt: classify via Gemini
+            isDoubtQuestion(normalized).then((isDoubt) => {
+                if (isDoubt) {
+                    handleDoubtQuestion(normalized);
+                } else {
+                    playVoice("Sorry, I didn't understand that.", "en", playbackRate);
+                }
+            });
         }
     }
+    
 
     function repeatCurrentStep() {
         if (audioRef.current) {
@@ -260,6 +275,50 @@ export default function CookingStepsPage() {
             console.log(`Jumping to step ${index + 1}`);
         } else {
             playVoice("That step number is out of range.", "en", playbackRate);
+        }
+    }
+    
+    async function isDoubtQuestion(text: string): Promise<boolean> {
+        try {
+            const res = await fetch("/api/classify-intent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text }),
+            });
+
+            const data = await res.json();
+            return res.ok && data.intent === "doubt";
+        } catch (err) {
+            console.error("Intent classification failed:", err);
+            return false;
+        }
+    }    
+
+    async function handleDoubtQuestion(question: string) {
+        try {
+            console.log("Resolving doubt:", question);
+
+            const res = await fetch("/api/doubt-resolver", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    videoId,
+                    stepIndex,
+                    question,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.answer) {
+                await playVoice(data.answer, "en", playbackRate);
+            } else {
+                console.warn("No answer from doubt resolver:", data.error || data);
+                await playVoice("Sorry, I couldn't find an answer for that.", "en", playbackRate);
+            }
+        } catch (err) {
+            console.error("Doubt resolver error:", err);
+            await playVoice("There was an error trying to answer your question.", "en", playbackRate);
         }
     }
     
