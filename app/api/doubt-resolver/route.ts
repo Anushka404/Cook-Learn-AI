@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
         // Gemini prompt
         const prompt = `
-You are a helpful cooking assistant. Answer the user's question using the recipe steps below.
+You are a friendly and clear cooking assistant. Answer the user's question based on the recipe steps below.
 
 User's question:
 "${question}"
@@ -61,21 +61,42 @@ User's question:
 Relevant recipe steps:
 ${chunks}
 
-Keep your answer simple, helpful, and beginner-friendly.
+Guidelines for your answer:
+- Write short, spoken-friendly sentences (max 15 words)
+- Use clear language suitable for beginners
+- Do NOT use markdown or formatting symbols like **, _, etc.
+- Add pauses naturally by using punctuation (periods, commas, line breaks)
+- Avoid technical terms unless you explain them simply
+
+Now answer helpfully and naturally.
 `.trim();
 
-        const geminiRes = await ai.models.generateContent({
+        const stream = await ai.models.generateContentStream({
             model: "gemini-2.0-flash",
             contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
 
-        const answer = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        const encoder = new TextEncoder();
 
-        if (!answer) {
-            return NextResponse.json({ error: "No response from Gemini" }, { status: 500 });
-        }
+        const readable = new ReadableStream({
+            async start(controller) {
+                for await (const chunk of stream) {
+                    const text = chunk.text;
+                    if (text) 
+                        controller.enqueue(encoder.encode(text));  
+                }
+                controller.close();
+            },
+        });
 
-        return NextResponse.json({ answer });
+        return new NextResponse(readable, {
+            headers: {
+                "Content-Type": "text/plain",
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no", // optional for proxy buffering issues
+            },
+        });
+  
     } catch (err) {
         console.error("Doubt resolver error:", err);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

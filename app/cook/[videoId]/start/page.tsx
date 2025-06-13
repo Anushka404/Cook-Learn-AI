@@ -13,7 +13,9 @@ export default function CookingStepsPage() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [repeatTrigger, setRepeatTrigger] = useState(false);
+    const [liveSubtitle, setLiveSubtitle] = useState("");
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const subtitleRef = useRef("");
 
     const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY!);
     const liveRef = useRef<any>(null);
@@ -27,7 +29,7 @@ export default function CookingStepsPage() {
 
     useEffect(() => {
         const storedSteps = localStorage.getItem(`cook-steps-${videoId}`);
-        console.log("Stored steps for video:", storedSteps);
+        // console.log("Stored steps for video:", storedSteps);
         if (storedSteps) {
             try {
                 const parsedSteps = JSON.parse(storedSteps);
@@ -74,7 +76,7 @@ export default function CookingStepsPage() {
                 audioRef.current = null;
             }
 
-            const res = await fetch("/api/tts-elevenlabs", {
+            const res = await fetch("/api/tts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text, lang }),
@@ -206,7 +208,7 @@ export default function CookingStepsPage() {
                 playVoice("Sorry, I didn't understand that command.", "en", playbackRate);
             }
         } else {
-            // Possibly a doubt: classify via Gemini
+            // doubt: classify via Gemini
             isDoubtQuestion(normalized).then((isDoubt) => {
                 if (isDoubt) {
                     handleDoubtQuestion(normalized);
@@ -225,7 +227,7 @@ export default function CookingStepsPage() {
         }
 
         console.log("Repeating step:", stepIndex, steps[stepIndex]);
-        setRepeatTrigger((prev) => !prev); // toggle to force re-trigger
+        setRepeatTrigger((prev) => !prev); 
     }
 
     const nextStep = () => {
@@ -296,33 +298,59 @@ export default function CookingStepsPage() {
 
     async function handleDoubtQuestion(question: string) {
         try {
-            console.log("Resolving doubt:", question);
+            console.log("DOUBT:", question);
+
+            setLiveSubtitle("");
+            subtitleRef.current = "";
 
             const res = await fetch("/api/doubt-resolver", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    videoId,
-                    stepIndex,
-                    question,
-                }),
+                body: JSON.stringify({ videoId, stepIndex, question }),
             });
 
-            const data = await res.json();
-
-            if (res.ok && data.answer) {
-                await playVoice(data.answer, "en", playbackRate);
-            } else {
-                console.warn("No answer from doubt resolver:", data.error || data);
-                await playVoice("Sorry, I couldn't find an answer for that.", "en", playbackRate);
+            if (!res.body) {
+                await playVoice("Sorry, I couldn't get a response.", "en", playbackRate);
+                return;
             }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                fullText += chunk;
+
+                subtitleRef.current += chunk;
+                setLiveSubtitle(subtitleRef.current);
+
+                await new Promise((r) => setTimeout(r, 0)); 
+            }
+
+            const cleanText = fullText
+                .replace(/\*\*/g, "")
+                .replace(/[_`]/g, "")
+                .replace(/\\n/g, "\n")
+                .replace(/\s+/g, " ")
+                .trim();
+
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+
+            await playVoice(cleanText, "en", playbackRate);
+
         } catch (err) {
             console.error("Doubt resolver error:", err);
             await playVoice("There was an error trying to answer your question.", "en", playbackRate);
         }
     }
-    
-    
+
     return (
         <div className="p-6 max-w-xl mx-auto text-center text-white">
             {!hasStarted ? (
@@ -345,7 +373,13 @@ export default function CookingStepsPage() {
                             className="h-full bg-amber-500 transition-all duration-300"
                             style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
                         />
-                    </div>
+                        </div>
+                        {liveSubtitle && (
+                            <div className="mt-4 text-amber-300 text-lg bg-black/40 p-2 rounded shadow-md">
+                                {liveSubtitle}
+                            </div>
+                        )}
+
 
                     <div
                         key={stepIndex}
