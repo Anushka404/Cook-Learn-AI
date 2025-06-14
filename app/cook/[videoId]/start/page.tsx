@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
+import { FastForward, Rewind, Mic } from "lucide-react";
 
 export default function CookingStepsPage() {
     const { videoId } = useParams<{ videoId: string }>();
@@ -352,96 +353,117 @@ export default function CookingStepsPage() {
     }
 
     return (
-        <div className="p-6 max-w-xl mx-auto text-center text-white">
+        <div className="min-h-screen bg-[#D7B6FF] px-4 py-10 font-mono text-[#1F1F1F]">
+            <>
+                <span className="absolute top-10 left-8 text-[88px] opacity-30 rotate-[10deg] select-none">🍝</span>
+                <span className="absolute bottom-24 left-12 text-[64px] opacity-30 rotate-[-15deg] select-none">🧄</span>
+                <span className="absolute top-20 right-16 text-[100px] opacity-30 rotate-[-8deg] select-none">🥕</span>
+                <span className="absolute bottom-12 right-8 text-[52px] opacity-35 rotate-[12deg] select-none">🧂</span>
+                <span className="absolute top-1/2 -translate-y-1/2 -left-1 text-[90px] opacity-30 rotate-[15deg] select-none">🥬</span>
+                <span className="absolute top-[28%] right-[38%] text-[72px] opacity-30 rotate-[-5deg] blur-xs select-none">🍳</span>
+                <span className="absolute top-1/2 -translate-y-1/2 -right-1 text-[85px] opacity-30 rotate-[-12deg] select-none">🧈</span>
+                <span className="absolute top-6 right-4 text-[56px] opacity-30 rotate-[14deg] select-none">🍅</span>
+                <span className="absolute top-52 left-32 text-[48px] opacity-30 rotate-[10deg] select-none">🧀</span>
+                <span className="absolute top-[70%] left-6 text-[60px] opacity-30 rotate-[-10deg] select-none">🫑</span>
+            </>
             {!hasStarted ? (
-                <button
-                    onClick={() => setHasStarted(true)}
-                    className="mt-6 px-6 py-3 rounded bg-amber-600 hover:bg-amber-700"
-                >
-                    Start Cooking
-                </button>
+                <div className="flex items-center justify-center h-full">
+                    <button
+                        onClick={() => setHasStarted(true)}
+                        className="px-6 py-3 bg-[#FFD761] hover:bg-yellow-400 text-black rounded-full font-semibold shadow-lg transition"
+                    >
+                        🍳 Let’s Begin Cooking
+                    </button>
+                </div>
             ) : (
-                <>
-                    <h1 className="text-2xl font-bold text-amber-500">Let’s Cook!</h1>
+                    
+                <div className="max-w-5xl mx-auto bg-white border-4 border-black rounded-xl shadow-lg p-6 sm:p-10 space-y-6">
+                    <div className="aspect-video w-full border border-black rounded-md overflow-hidden">
+                        <iframe
+                            src={`https://www.youtube.com/embed/${videoId}`}
+                            className="w-full h-full"
+                            allowFullScreen
+                        />
+                    </div>
 
-                    <div className="text-sm text-amber-400 font-medium mt-4">
+                    <h1 className="text-3xl font-bold text-[#1F1F1F]">Let’s Cook!</h1>
+
+                    <div className="text-sm text-amber-600 font-medium">
                         Step {stepIndex + 1} of {steps.length}
                     </div>
-                    
-                    <div className="w-full h-2 bg-gray-700 rounded overflow-hidden mt-2">
+
+                    <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
                         <div
                             className="h-full bg-amber-500 transition-all duration-300"
                             style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
                         />
-                        </div>
-                        {liveSubtitle && (
-                            <div className="mt-4 text-amber-300 text-lg bg-black/40 p-2 rounded shadow-md">
-                                {liveSubtitle}
-                            </div>
-                        )}
+                    </div>
 
+                    {liveSubtitle && (
+                        <div className="text-amber-700 text-lg bg-yellow-100 p-2 rounded shadow-md font-mono">
+                            {liveSubtitle}
+                        </div>
+                    )}
 
                     <div
                         key={stepIndex}
-                        className="mt-6 text-lg bg-gray-800 p-4 rounded shadow-lg min-h-[120px] flex items-center justify-center transition-opacity duration-300 opacity-100"
+                        className="text-lg bg-gray-50 p-4 rounded border border-gray-300 shadow-inner min-h-[120px] flex items-center justify-center"
                     >
                         {steps[stepIndex] || "You’ve finished all steps!"}
                     </div>
 
-                    <div className="flex justify-center gap-4 mt-4">
+                    <div className="flex flex-wrap justify-center gap-4">
                         <button
                             onClick={() =>
                                 setPlaybackRate((prev) => {
                                     const newRate = Math.max(0.5, prev - 0.25);
-                                    if (audioRef.current) {
-                                        audioRef.current.playbackRate = newRate;
-                                    }
+                                    if (audioRef.current) audioRef.current.playbackRate = newRate;
                                     return newRate;
                                 })
                             }
-                            className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600"
-                        >
-                            ⏪ Slower ({playbackRate.toFixed(2)}x)
-                        </button>
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
+                            >
+                                <Rewind className="w-4 h-4" /> Slower ({playbackRate.toFixed(2)}x)
+                            </button>
+
                         <button
                             onClick={() =>
                                 setPlaybackRate((prev) => {
                                     const newRate = Math.min(2.0, prev + 0.25);
-                                    if (audioRef.current) {
-                                        audioRef.current.playbackRate = newRate;
-                                    }
+                                    if (audioRef.current) audioRef.current.playbackRate = newRate;
                                     return newRate;
                                 })
                             }
-                            className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600"
-                        >
-                            ⏩ Faster ({playbackRate.toFixed(2)}x)
-                        </button>
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
+                            >
+                            Faster ({playbackRate.toFixed(2)}x)  <FastForward className="w-4 h-4" />
+                            </button>
                     </div>
 
-                    <div className="flex justify-center gap-4 mt-4">
+                    <div className="flex flex-wrap justify-center gap-4 mt-4">
                         <button
                             onClick={prevStep}
                             disabled={isSpeaking}
-                            className="mt-6 px-6 py-3 rounded bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
+                            className="px-6 py-3 rounded-full bg-[#FFB347] hover:bg-[#FFA500] text-white font-bold shadow disabled:opacity-50"
                         >
                             Previous Step
                         </button>
                         <button
                             onClick={nextStep}
                             disabled={isSpeaking}
-                            className="mt-6 px-6 py-3 rounded bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
+                            className="px-6 py-3 rounded-full bg-[#FFB347] hover:bg-[#FFA500] text-white font-bold shadow disabled:opacity-50"
                         >
                             {stepIndex < steps.length - 1 ? "Next Step" : "Finish Cooking"}
                         </button>
                     </div>
-
-                    <div className="mt-4 animate-pulse text-amber-400">
-                        🎙️ Listening for voice commands...
+                    <div className="mt-4 flex items-center justify-center gap-2 animate-pulse text-red-500 font-semibold">
+                        <Mic className="w-5 h-5 text-red-500" />
+                        Listening for voice commands...
                     </div>
-                </>
+                </div>
             )}
         </div>
     );
+      
     
 }
