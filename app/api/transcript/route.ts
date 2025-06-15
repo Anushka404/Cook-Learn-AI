@@ -1,24 +1,40 @@
-import { NextResponse, NextRequest } from 'next/server';
-import { YoutubeTranscript } from 'youtube-transcript';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
     try {
         const { videoId } = await req.json();
-        if (!videoId)
+        if (!videoId) {
             return NextResponse.json({ error: 'Missing video ID' }, { status: 400 });
+        }
 
-        const rawTranscript = await YoutubeTranscript.fetchTranscript(videoId);
+        const url = `https://youtube-transcript3.p.rapidapi.com/api/transcript?videoId=${videoId}`;
 
-        const cleaned = (rawTranscript as any[]).map((item) => ({
-            text: item.text,
-            start: item.offset ?? 0,
-            duration: Number(item.duration) ?? 0,
-        }));
-        console.log(`Fetched transcript for video ${videoId}:`, cleaned);
+        const options = {
+            method: 'GET',
+            headers: {
+                'X-RapidAPI-Key': process.env.RAPIDAPI_KEY!,
+                'X-RapidAPI-Host': 'youtube-transcript3.p.rapidapi.com',
+            },
+        };
 
-        return NextResponse.json({ transcript: cleaned });
-    } catch (err) {
-        console.error(err);
-        return NextResponse.json({ error: 'Failed to fetch transcript' }, { status: 500 });
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            return NextResponse.json({ error: 'RapidAPI request failed' }, { status: response.status });
+        }
+
+        const result = await response.json();
+
+        if (!result || !result.transcript) {
+            return NextResponse.json({ error: 'Transcript not available' }, { status: 404 });
+        }
+
+        // Optional: preview first 3 entries
+        console.log("📄 Transcript preview:", result.transcript.slice(0, 3));
+
+        return NextResponse.json({ transcript: result.transcript });
+    } catch (error: any) {
+        console.error("❌ Error fetching transcript from RapidAPI:", error);
+        return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }
