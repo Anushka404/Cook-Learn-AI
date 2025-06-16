@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Youtube, ChefHat, BookOpenCheck } from "lucide-react";
+import { Clapperboard , ChefHat, BookOpenCheck } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -46,13 +46,13 @@ export default function Home() {
 
       <div className="bg-white border-4 border-black shadow-lg rounded-lg p-6 w-full max-w-xl">
         <div className="flex items-center gap-3 mb-4">
-          <Youtube className="text-red-600 w-6 h-6" />
+          <Clapperboard className="text-red-600 w-6 h-6" />
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Paste a YouTube URL here..."
-            className="flex-1 p-3 border-3 border-gray-600 rounded-md text-black focus:outline-none focus:border-[#914dd9]"
+            className="flex-1 p-3 border-3 border-gray-600 rounded-md text-black focus:outline-none focus:border-[#3ab179]"
           />
         </div>
 
