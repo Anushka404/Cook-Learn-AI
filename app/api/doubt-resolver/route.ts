@@ -27,11 +27,8 @@ export async function POST(req: NextRequest) {
             questionEmbedding = queryEmbeds?.[0];
         }
           
-
-        if (!questionEmbedding) {
+        if (!questionEmbedding) 
             return NextResponse.json({ error: "Failed to generate question embedding" }, { status: 500 });
-        }
-          
 
         // Query Pinecone in the cook namespace
         const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
@@ -47,9 +44,8 @@ export async function POST(req: NextRequest) {
             .slice(0, 5)
             .join("\n\n");
 
-        if (!chunks) {
+        if (!chunks) 
             return NextResponse.json({ error: "No relevant transcript found" }, { status: 404 });
-        }
 
         // Gemini prompt
         const prompt = `

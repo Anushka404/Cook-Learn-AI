@@ -109,85 +109,95 @@ export default function VideoPage() {
     };
 
     return (
-        <>
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Transcript for: {videoId}</h1>
+        <div className="min-h-screen bg-[#D7B6FF] px-4 py-10 font-sans space-y-12">
+            {/* Section: Transcript */}
+            <div className="mx-auto max-w-4xl bg-white border-4 border-black rounded-xl p-6 shadow space-y-6">
+                <h1 className="text-2xl font-mono font-bold text-[#1F1F1F]">📜 Transcript</h1>
 
-            {loading ? (
-                <p>Loading transcript...</p>
-            ) : (
-                <div className="space-y-4">
-                    {transcript.map((chunk, index) => (
-                        <div key={index} className="border p-3 rounded shadow-sm bg-black">
-                            <p>
-                                <span className="font-mono text-gray-500 mr-2">
-                                    [{formatTime(chunk.start)}]
-                                </span>
+                {loading ? (
+                    <p className="text-gray-600">Loading transcript...</p>
+                ) : (
+                    <div className="space-y-4">
+                        {transcript.map((chunk, index) => (
+                            <div
+                                key={index}
+                                className="bg-[#FDFDFD] border border-gray-300 rounded-md p-3 shadow-sm font-montserrat text-gray-800"
+                            >
                                 {chunk.text}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            )}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
-            <div className="mt-8">
-                <h2 className="text-xl font-bold mb-3">🧠 AI Summary</h2>
+
+            {/* Section: AI Summary */}
+            <div className="mx-auto max-w-4xl bg-white border-4 border-black rounded-xl p-6 shadow space-y-6">
+                <h2 className="text-2xl font-mono font-bold text-[#1F1F1F]">🧠 AI Summary</h2>
 
                 {summarizing ? (
-                    <p>Summarizing transcript...</p>
+                    <p className="text-gray-600">Summarizing transcript...</p>
                 ) : summaries?.length > 0 ? (
                     <div className="space-y-4">
                         {summaries.map((s, index) => (
-                            <div key={index} className="p-4 bg-yellow-50 rounded shadow border border-yellow-200">
-                                <pre className="whitespace-pre-wrap text-sm text-gray-800">{s.output}</pre>
+                            <div
+                                key={index}
+                                className="p-4 bg-[#FFFDD0] border border-yellow-300 rounded font-montserrat text-gray-900"
+                            >
+                                <pre className="whitespace-pre-wrap text-sm">{s.output}</pre>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p>No summaries available.</p>
+                    <p className="text-gray-500">No summaries available.</p>
                 )}
             </div>
 
-            <div className="mt-10 p-4 border rounded bg-white dark:bg-zinc-900">
-                <h2 className="text-xl font-semibold">🔎 Ask a Question</h2>
+            {/*Section: Ask Gemini */}
+            <div className="mx-auto max-w-4xl bg-white border-4 border-black rounded-xl p-6 shadow space-y-4">
+                <h2 className="text-2xl font-mono font-bold text-[#1F1F1F]">🔎 Ask a Question (In Progress)</h2>
 
                 <input
-                    className="w-full border p-2 rounded mt-2 text-white"
-                    placeholder="e.g., What is osmosis?"
+                    className="w-full p-3 border border-black rounded-md font-montserrat mt-2 bg-[#FFF0F5] text-black placeholder:text-gray-500"
+                    placeholder="e.g., What does it mean by...?"
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                 />
 
-                <button
-                    onClick={handleQuery}
-                    className="mt-3 px-4 py-2 bg-blue-600 text-white rounded"
-                >
-                    Search
-                </button>
-                <button
-                    onClick={handleAnswer}
-                    className="ml-3 mt-3 px-4 py-2 bg-green-600 text-white rounded hover:cursor-pointer"
-                >
-                    Get AI Answer
-                </button>
+                <div className="flex gap-4 flex-wrap mt-3">
+                    <button
+                        onClick={handleQuery}
+                        className="px-5 py-2 rounded-full bg-[#B8F2E6] hover:bg-[#9ee3d3] text-black font-semibold shadow transition"
+                    >
+                        Search
+                    </button>
+                    <button
+                        onClick={handleAnswer}
+                        className="px-5 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow transition"
+                    >
+                        Get AI Answer
+                    </button>
+                </div>
 
-                {answerLoading && <p className="mt-3 text-sm text-gray-400">Gemini is thinking...</p>}
+                {answerLoading && (
+                    <p className="mt-3 text-sm text-gray-600 font-montserrat">Gemini is thinking...</p>
+                )}
 
                 {answer && (
-                    <div className="mt-4 p-4 bg-green-50 border rounded text-black dark:bg-zinc-800 dark:text-white">
-                        <h4 className="font-semibold mb-1">💡 Gemini's Answer:</h4>
+                    <div className="mt-4 p-4 bg-green-50 border border-green-300 rounded font-montserrat text-black">
+                        <h4 className="font-semibold mb-2">💡 Gemini's Answer:</h4>
                         <p className="whitespace-pre-wrap text-sm">{answer}</p>
                     </div>
                 )}
 
-
                 {results.length > 0 && (
                     <div className="mt-6">
-                        <h3 className="font-medium mb-2">📋 Top Matches:</h3>
-                        <ul className="space-y-2">
+                        <h3 className="text-lg font-semibold font-mono mb-3">📋 Top Matches:</h3>
+                        <ul className="space-y-3">
                             {results.map((r, i) => (
-                                <li key={i} className="p-2 border rounded bg-gray-50 dark:bg-zinc-800">
-                                    <p><strong>Timestamp:</strong> {r.start ? `${Math.floor(r.start / 60)}:${String(Math.floor(r.start % 60)).padStart(2, "0")}` : "?"}</p>
+                                <li
+                                    key={i}
+                                    className="p-3 rounded-md bg-[#F0F8FF] border border-gray-300 font-montserrat"
+                                >
                                     <p>{r.text}</p>
                                     <p className="text-sm text-gray-500">Score: {r.score?.toFixed(3)}</p>
                                 </li>
@@ -196,8 +206,9 @@ export default function VideoPage() {
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
+      
 }
 
 function formatTime(seconds: number | undefined): string {
