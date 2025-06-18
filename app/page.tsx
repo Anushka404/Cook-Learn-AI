@@ -52,7 +52,7 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Paste a YouTube URL here..."
-            className="flex-1 p-3 border-3 border-gray-600 rounded-md text-black focus:outline-none focus:border-[#3ab179]"
+            className="flex-1 p-3 border-3 border-gray-600 rounded-md text-black focus:outline-none focus:border-blue-500"
           />
         </div>
 
