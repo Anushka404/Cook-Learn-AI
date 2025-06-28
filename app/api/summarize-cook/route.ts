@@ -47,7 +47,13 @@ Return JSON:
   "title": "...",
   "summary": "...",
   "ingredients": ["..."],
-  "steps": ["Step 1...", "Step 2...", ...]
+  "steps": [
+    {
+      "step": "Chop the onions finely.",
+      "timestamp": 43.5
+    },
+     ...
+  ]
 }
 `;
 

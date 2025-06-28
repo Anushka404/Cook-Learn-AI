@@ -8,7 +8,7 @@ export default function CookingStepsPage() {
     const { videoId } = useParams<{ videoId: string }>();
     const router = useRouter();
     const [hasStarted, setHasStarted] = useState(false);
-    const [steps, setSteps] = useState<string[]>([]);
+    const [steps, setSteps] = useState <{step: string; timestamp: number}[]>([]);
     const [loading, setLoading] = useState(true);
     const [stepIndex, setStepIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -36,7 +36,7 @@ export default function CookingStepsPage() {
                 const parsedSteps = JSON.parse(storedSteps);
                 if (Array.isArray(parsedSteps)) {
                     setSteps(parsedSteps);
-                }
+                }                
             } catch (err) {
                 console.error("Failed to parse stored steps:", err);
             }
@@ -50,7 +50,7 @@ export default function CookingStepsPage() {
         if (!hasStarted || steps.length === 0 || stepIndex >= steps.length)
             return;
 
-        playVoice(steps[stepIndex], "en", playbackRate);
+        playVoice(steps[stepIndex]?.step || "", "en", playbackRate);
     }, [stepIndex, steps, hasStarted, playbackRate, repeatTrigger]);
 
     useEffect(() => {
@@ -227,7 +227,7 @@ export default function CookingStepsPage() {
             audioRef.current = null;
         }
 
-        console.log("Repeating step:", stepIndex, steps[stepIndex]);
+        console.log("Repeating step:", stepIndex, steps[stepIndex]?.step);
         setRepeatTrigger((prev) => !prev); 
     }
 
@@ -352,6 +352,12 @@ export default function CookingStepsPage() {
         }
     }
 
+    function secondsToTimestamp(seconds: number) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }      
+
     return (
         <div className="min-h-screen bg-[#D7B6FF] px-4 py-10 font-mono text-[#1F1F1F]">
             <>
@@ -409,8 +415,13 @@ export default function CookingStepsPage() {
                         key={stepIndex}
                         className="text-lg bg-gray-50 p-4 rounded border border-gray-300 shadow-inner min-h-[120px] flex items-center justify-center"
                     >
-                        {steps[stepIndex] || "You’ve finished all steps!"}
-                    </div>
+                            {steps[stepIndex]?.step || "You’ve finished all steps!"}
+                            
+                            <p className="text-xs text-gray-400 mt-1">
+                                Timestamp: {secondsToTimestamp(steps[stepIndex]?.timestamp || 0)}
+                            </p>
+                        </div>
+                        
 
                     <div className="flex flex-wrap justify-center gap-4">
                         <button

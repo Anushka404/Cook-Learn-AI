@@ -12,7 +12,7 @@ export default function CookPage() {
     const { videoId } = useParams<{ videoId: string }>();
     const [loading, setLoading] = useState(true);
     const [ingredients, setIngredients] = useState<string[]>([]);
-    const [steps, setSteps] = useState<string[]>([]);
+    const [steps, setSteps] = useState<{ step: string; timestamp: number}[]>([]);
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [summary, setSummary] = useState("");
@@ -136,9 +136,9 @@ export default function CookPage() {
                         Steps</h2>
                     <ol className="list-decimal pl-6 space-y-2 text-gray-800">
                         {Array.isArray(steps) &&
-                            steps.map((step, i) => (
+                            steps.map((stepObj, i) => (
                                 <li key={i} className="bg-[#FDFDFD] p-3 font-montserrat rounded border border-gray-200 shadow-sm">
-                                    {step}
+                                    {stepObj.step}
                                 </li>
                             ))}
                     </ol>
