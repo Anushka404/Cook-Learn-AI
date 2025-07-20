@@ -10,16 +10,15 @@ export async function POST(req: NextRequest) {
         }
 
         const pineconeIndex = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+        const namespace = `cook-${videoId}`;
+        console.log("Summarizing cook for video:", videoId);
+        console.log("Querying Pinecone namespace:", namespace);
 
-        // Fetch embedded transcript chunks for cooking namespace
-        const result = await pineconeIndex.namespace(`cook-${videoId}`).query({
+        const result = await pineconeIndex.namespace(namespace).query({
             topK: 100,
             includeMetadata: true,
             vector: Array(1024).fill(0),
         });
-        console.log("Summarizing cook for video:", videoId);
-        console.log("Querying Pinecone namespace:", `cook-${videoId}`);
-
 
         const chunks = result.matches
             .map((match) => match.metadata?.text)

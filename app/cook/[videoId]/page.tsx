@@ -1,24 +1,27 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     ShoppingBasket,
-    ListChecks,
     UtensilsCrossed,
     ChefHat
-} from "lucide-react";  
+} from "lucide-react";
 
 export default function CookPage() {
     const { videoId } = useParams<{ videoId: string }>();
     const [loading, setLoading] = useState(true);
     const [ingredients, setIngredients] = useState<string[]>([]);
-    const [steps, setSteps] = useState<{ step: string; timestamp: number}[]>([]);
+    const [steps, setSteps] = useState<{ step: string; timestamp: number }[]>([]);
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [summary, setSummary] = useState("");
     const router = useRouter();
+    const ranRef = useRef(false); // Prevent double execution
 
     useEffect(() => {
+        if (ranRef.current) return;
+        ranRef.current = true;
+
         async function fetchRecipe() {
             try {
                 const transcriptRes = await fetch("/api/transcript", {
@@ -35,16 +38,32 @@ export default function CookPage() {
                     body: JSON.stringify({ transcript, videoId, mode: "cook" }),
                 });
 
+                await new Promise((res) => setTimeout(res, 2000));
+
                 const res = await fetch(`/api/summarize-cook`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ videoId }),
                 });
 
+                const retryCount = Number(sessionStorage.getItem("retryCount") || "0");
+
+                if (res.status === 404) {
+                    if (retryCount < 4) {
+                        sessionStorage.setItem("retryCount", String(retryCount + 1));
+                        setError("🍳 Cooking magic is still loading… Retrying shortly!");
+                        await new Promise((r) => setTimeout(r, 1500));
+                        location.reload();
+                        return;
+                    } else {
+                        setError("🥲 Still cooking… Please try again in a moment.");
+                        return;
+                    }
+                }
+
                 if (!res.ok) {
                     const errorData = await res.json();
                     setError(errorData.error || "Failed to fetch recipe");
-                    setLoading(false);
                     return;
                 }
 
@@ -53,7 +72,7 @@ export default function CookPage() {
                 setSummary(data?.summary || "");
                 setIngredients(data?.ingredients || []);
                 setSteps(data?.steps || []);
-
+                sessionStorage.removeItem("retryCount");
             } catch (error) {
                 console.error("Error fetching recipe:", error);
                 setError("Something went wrong while loading the recipe.");
@@ -61,6 +80,7 @@ export default function CookPage() {
                 setLoading(false);
             }
         }
+
         fetchRecipe();
     }, [videoId]);
 
@@ -71,8 +91,18 @@ export default function CookPage() {
         router.push(`/cook/${videoId}/start`);
     };
 
+    if (error === "🍳 Cooking magic is still loading… Retrying shortly!") {
+        return (
+            <div className="p-4 text-xl text-center animate-pulse">
+                <div className="text-2xl">🍳 Cooking magic is still loading…</div>
+                <div className="mt-2 text-gray-600">Just a moment...</div>
+            </div>
+        );
+    }
+
     if (loading)
         return <div className="p-4 text-xl text-center">Loading recipe...</div>;
+
     if (error)
         return <div className="p-4 text-red-600 text-center">{error}</div>;
 
@@ -91,8 +121,6 @@ export default function CookPage() {
                 <span className="absolute top-52 left-32 text-[48px] opacity-30 rotate-[10deg] select-none">🧀</span>
                 <span className="absolute top-[70%] left-6 text-[60px] opacity-30 rotate-[-10deg] select-none">🫑</span>
             </>
-
-
 
             <div className="mx-auto w-full max-w-5xl bg-white border-4 border-black rounded-xl shadow-lg p-6 sm:p-10 space-y-6">
                 {/* YouTube Video */}

@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
 
         console.log(`Upserted ${vectors.length} vectors to ${namespace}`);
 
+        await new Promise((res) => setTimeout(res, 1500));
         return NextResponse.json({ success: true, count: vectors.length });
     } catch (err) {
         console.error("Error in /api/embed:", err);
