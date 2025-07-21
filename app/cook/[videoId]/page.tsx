@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import {
     ShoppingBasket,
     UtensilsCrossed,
     ChefHat
 } from "lucide-react";
+import TruckLoader from "@/components/TruckLoader";
 
 export default function CookPage() {
     const { videoId } = useParams<{ videoId: string }>();
@@ -91,20 +93,47 @@ export default function CookPage() {
         router.push(`/cook/${videoId}/start`);
     };
 
-    if (error === "🍳 Cooking magic is still loading… Retrying shortly!") {
+    if (loading) {
         return (
-            <div className="p-4 text-xl text-center animate-pulse">
-                <div className="text-2xl">🍳 Cooking magic is still loading…</div>
-                <div className="mt-2 text-gray-600">Just a moment...</div>
+            <div className="flex min-h-screen flex-col items-center justify-center text-center space-y-4 bg-amber-100">
+                <Image
+                    src="/food.avif"
+                    alt="Food background"
+                    fill
+                    className="object-cover opacity-20 z-0 blur-[3px]"
+                    priority
+                />
+                    <TruckLoader />
+                    <div className="text-xl font-semibold text-gray-700 animate-pulse">
+                        Loading recipe...
+                </div>
             </div>
         );
     }
 
-    if (loading)
-        return <div className="p-4 text-xl text-center">Loading recipe...</div>;
-
-    if (error)
-        return <div className="p-4 text-red-600 text-center">{error}</div>;
+    if (error === "🍳 Cooking magic is still loading… Retrying shortly!") {
+        return (
+            <div className="flex min-h-screen flex-col items-center justify-center text-center space-y-2 animate-pulse bg-amber-100">
+                    <Image
+                        src="/food.avif"
+                        alt="Food background"
+                        fill
+                        className="object-cover opacity-20 z-0 blur-[3px]"
+                        priority
+                    />
+                    <TruckLoader />
+                    <div className="text-2xl text-white">🍳 Cooking magic is still loading…</div>
+                    <div className="text-gray-300">Just a moment...</div>
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="flex min-h-screen items-center justify-center text-red-600 text-center">
+                {error}
+            </div>
+        );
+    }
 
     return (
         <div className="relative min-h-screen bg-[#D7B6FF] px-4 py-10 font-sans">
