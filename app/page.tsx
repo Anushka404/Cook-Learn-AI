@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Clapperboard, ChefHat, BookOpenCheck } from "lucide-react";
@@ -34,17 +34,24 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-[#E9D5FF] flex flex-col items-center justify-center p-6 font-sans text-black">
-            <div className="text-center mb-8">
+        <div className="min-h-screen bg-amber-100 flex flex-col items-center justify-center p-6 font-sans text-black overflow-hidden">
+            <Image
+                src="/food.avif"
+                alt="Food background"
+                fill
+                className="object-cover opacity-40 blur-[2px] z-0"
+                priority
+            />
+            <div className="z-10 text-center mb-8">
                 <h1 className="text-4xl sm:text-5xl font-extrabold mb-3">
                     Cook & Learn AI
                 </h1>
-                <p className="text-lg text-gray-800">
+                <p className="text-lg text-gray-900 font-medium ">
                     Your smart assistant for cooking and learning with YouTube videos.
                 </p>
             </div>
 
-            <div className="bg-white border-4 border-black shadow-lg rounded-lg p-6 w-full max-w-xl">
+            <div className="bg-gray-100 border-4 border-black shadow-lg rounded-lg p-6 w-full max-w-xl z-10">
                 <div className="flex items-center gap-3 mb-4">
                     <Clapperboard className="text-red-600 w-6 h-6" />
                     <input
