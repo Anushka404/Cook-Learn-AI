@@ -184,7 +184,7 @@ export default function VideoPage() {
 
                 {answer && (
                     <div className="mt-4 p-4 bg-green-50 border border-green-300 rounded font-montserrat text-black">
-                        <h4 className="font-semibold mb-2">💡 Gemini's Answer:</h4>
+                        <h4 className="font-semibold mb-2">💡 Gemini&rsquo;s Answer:</h4>
                         <p className="whitespace-pre-wrap text-sm">{answer}</p>
                     </div>
                 )}
@@ -211,10 +211,10 @@ export default function VideoPage() {
       
 }
 
-function formatTime(seconds: number | undefined): string {
-    if (typeof seconds !== "number" || isNaN(seconds)) return "--:--";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
+// function formatTime(seconds: number | undefined): string {
+//     if (typeof seconds !== "number" || isNaN(seconds)) return "--:--";
+//     const mins = Math.floor(seconds / 60);
+//     const secs = Math.floor(seconds % 60);
+//     return `${mins}:${secs.toString().padStart(2, "0")}`;
+// }
 

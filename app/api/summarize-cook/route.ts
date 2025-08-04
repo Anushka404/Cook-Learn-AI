@@ -68,7 +68,7 @@ Return JSON:
             const json = JSON.parse(textOutput);
             return NextResponse.json(json);
         } catch (err) {
-            console.error("Invalid JSON from Gemini:", textOutput);
+            console.error("Invalid JSON from Gemini:", err, textOutput);
             return NextResponse.json({ error: "Failed to parse Gemini response" }, { status: 500 });
         }
     } catch (error) {

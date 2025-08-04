@@ -5,7 +5,7 @@ import { ai } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
     try {
-        const { question, videoId, stepIndex } = await req.json();
+        const { question, videoId } = await req.json();
 
         if (!question || !videoId) {
             return NextResponse.json({ error: "Missing question or videoId" }, { status: 400 });

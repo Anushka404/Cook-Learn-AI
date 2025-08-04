@@ -16,7 +16,7 @@ export default function Home() {
             } else if (parsed.hostname.includes("youtube.com")) {
                 return parsed.searchParams.get("v");
             }
-        } catch (e) {
+        } catch {
             return null;
         }
         return null;

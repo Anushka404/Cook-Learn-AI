@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
         const { audio } = await req.json();
         const buffer = Buffer.from(audio, 'base64');
 
-        const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+        const { result } = await deepgram.listen.prerecorded.transcribeFile(
             buffer,
             { model: 'nova', smart_format: true }
         );
