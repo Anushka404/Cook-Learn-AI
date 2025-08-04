@@ -352,11 +352,11 @@ export default function CookingStepsPage() {
         }
     }
 
-    function secondsToTimestamp(seconds: number) {
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
-        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }      
+    // function secondsToTimestamp(seconds: number) {
+    //     const m = Math.floor(seconds / 60);
+    //     const s = Math.floor(seconds % 60);
+    //     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    // }      
 
     return (
         <div className="min-h-screen bg-[#D7B6FF] px-4 py-10 font-mono text-[#1F1F1F]">
