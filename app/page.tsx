@@ -44,7 +44,7 @@ export default function Home() {
             />
             <div className="z-10 text-center mb-8">
                 <h1 className="text-4xl sm:text-5xl font-extrabold mb-3">
-                    Cook-Mate AI
+                    Cook & Learn AI
                 </h1>
                 <p className="text-lg text-gray-900 font-medium ">
                     Your smart assistant for cooking and learning with YouTube videos.
@@ -74,7 +74,7 @@ export default function Home() {
 
                     <button
                         onClick={() => handleSubmit("cook")}
-                        className="w-full flex items-center justify-center gap-2 border-2 border-black text-black font-medium p-3 rounded bg-[#FFD761] hover:bg-yellow-400"
+                        className="w-full flex items-center justify-center gap-2 border-2 border-black text-black font-medium p-3 rounded hover:bg-green-100"
                     >
                         <ChefHat className="w-5 h-5" />
                         Let’s Cook!
