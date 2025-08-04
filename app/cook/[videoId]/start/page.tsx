@@ -417,9 +417,9 @@ export default function CookingStepsPage() {
                     >
                             {steps[stepIndex]?.step || "You’ve finished all steps!"}
                             
-                            <p className="text-xs text-gray-400 mt-1">
+                            {/* <p className="text-xs text-gray-400 mt-1">
                                 Timestamp: {secondsToTimestamp(steps[stepIndex]?.timestamp || 0)}
-                            </p>
+                            </p> */}
                         </div>
                         
 
