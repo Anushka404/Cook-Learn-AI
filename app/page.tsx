@@ -44,7 +44,7 @@ export default function Home() {
             />
             <div className="z-10 text-center mb-8">
                 <h1 className="text-4xl sm:text-5xl font-extrabold mb-3">
-                    Cook & Learn AI
+                    Cook-Mate AI
                 </h1>
                 <p className="text-lg text-gray-900 font-medium ">
                     Your smart assistant for cooking and learning with YouTube videos.
@@ -64,17 +64,17 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                    <button
+                    {/* <button
                         onClick={() => handleSubmit("summarize")}
                         className="w-full flex items-center justify-center gap-2 bg-[#FFD761] hover:bg-yellow-400 text-black font-medium p-3 rounded shadow-md"
                     >
                         <BookOpenCheck className="w-5 h-5" />
                         Summarize Lecture
-                    </button>
+                    </button> */}
 
                     <button
                         onClick={() => handleSubmit("cook")}
-                        className="w-full flex items-center justify-center gap-2 border-2 border-black text-black font-medium p-3 rounded hover:bg-green-100"
+                        className="w-full flex items-center justify-center gap-2 border-2 border-black text-black font-medium p-3 rounded bg-[#FFD761] hover:bg-yellow-400"
                     >
                         <ChefHat className="w-5 h-5" />
                         Let’s Cook!
