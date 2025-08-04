@@ -64,13 +64,13 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                    {/* <button
+                    <button
                         onClick={() => handleSubmit("summarize")}
                         className="w-full flex items-center justify-center gap-2 bg-[#FFD761] hover:bg-yellow-400 text-black font-medium p-3 rounded shadow-md"
                     >
                         <BookOpenCheck className="w-5 h-5" />
                         Summarize Lecture
-                    </button> */}
+                    </button>
 
                     <button
                         onClick={() => handleSubmit("cook")}
