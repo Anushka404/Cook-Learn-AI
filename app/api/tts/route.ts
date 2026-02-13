@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
         }
 
         let audioBuffer: ArrayBuffer | null = null;
-        let contentType = "audio/mpeg";
+        const contentType = "audio/mpeg";
 
         // 2. Try Deepgram TTS first (Better quality, supports longer text)
         const apiKey = process.env.DEEPGRAM_API_KEY;

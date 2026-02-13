@@ -21,6 +21,7 @@ export default function CookingStepsPage() {
     const subtitleRef = useRef("");
     const commandBufferRef = useRef("");
     const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const handleVoiceCommandRef = useRef<((text: string) => void) | null>(null);
 
     const deepgramRef = useRef<any>(null);
     const liveRef = useRef<any>(null);
@@ -64,7 +65,12 @@ export default function CookingStepsPage() {
         }
 
         return () => stopDeepgramMicRecognition();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasStarted]);
+
+    useEffect(() => {
+        handleVoiceCommandRef.current = handleVoiceCommand;
+    });
 
     // Cleanup audio on unmount
     useEffect(() => {
@@ -181,7 +187,7 @@ export default function CookingStepsPage() {
                     commandTimeoutRef.current = setTimeout(() => {
                         const fullCommand = commandBufferRef.current.trim();
                         if (fullCommand) {
-                            handleVoiceCommand(fullCommand);
+                            handleVoiceCommandRef.current?.(fullCommand);
                         }
                         commandBufferRef.current = "";
                         commandTimeoutRef.current = null;
@@ -272,7 +278,7 @@ export default function CookingStepsPage() {
             });
         }
     }
-    
+
 
     function repeatCurrentStep() {
         if (audioRef.current) {
