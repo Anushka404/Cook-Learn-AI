@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ai } from "@/lib/gemini"; 
+import { openrouter } from "@/lib/openrouter";
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,12 +20,12 @@ If it is a known voice command (like next, repeat, pause), answer with: command
 Only reply with "doubt" or "command" — nothing else.
         `.trim();
 
-        const geminiRes = await ai.models.generateContent({
-            model: "gemini-2.0-flash", 
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
+        const completion = await openrouter.chat.completions.create({
+            model: "stepfun/step-3.5-flash:free",
+            messages: [{ role: "user", content: prompt }],
         });
 
-        const raw = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || "";
+        const raw = completion.choices[0]?.message?.content?.trim().toLowerCase() || "";
         const intent = raw.includes("doubt") ? "doubt" : "command";
 
         return NextResponse.json({ intent });

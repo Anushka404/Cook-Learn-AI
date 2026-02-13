@@ -25,6 +25,25 @@ export default function CookPage() {
         ranRef.current = true;
 
         async function fetchRecipe() {
+            // Check cache first
+            const cached = localStorage.getItem(`cook-full-${videoId}`);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    if (data && data.steps) {
+                        setTitle(data.title || "");
+                        setSummary(data.summary || "");
+                        setIngredients(data.ingredients || []);
+                        setSteps(data.steps || []);
+                        setLoading(false);
+                        return; // Skip fetch
+                    }
+                } catch (e) {
+                    console.error("Cache parse error", e);
+                    localStorage.removeItem(`cook-full-${videoId}`);
+                }
+            }
+
             try {
                 const transcriptRes = await fetch("/api/transcript", {
                     method: "POST",
@@ -74,6 +93,10 @@ export default function CookPage() {
                 setSummary(data?.summary || "");
                 setIngredients(data?.ingredients || []);
                 setSteps(data?.steps || []);
+
+                // Cache the full result
+                localStorage.setItem(`cook-full-${videoId}`, JSON.stringify(data));
+
                 sessionStorage.removeItem("retryCount");
             } catch (error) {
                 console.error("Error fetching recipe:", error);
@@ -103,9 +126,9 @@ export default function CookPage() {
                     className="object-cover opacity-20 z-0 blur-[3px]"
                     priority
                 />
-                    <TruckLoader />
-                    <div className="text-xl font-semibold text-gray-700 animate-pulse">
-                        Loading recipe...
+                <TruckLoader />
+                <div className="text-xl font-semibold text-gray-700 animate-pulse">
+                    Loading recipe...
                 </div>
             </div>
         );
@@ -114,16 +137,16 @@ export default function CookPage() {
     if (error === "🍳 Cooking magic is still loading… Retrying shortly!") {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center text-center space-y-2 animate-pulse bg-amber-100">
-                    <Image
-                        src="/food.avif"
-                        alt="Food background"
-                        fill
-                        className="object-cover opacity-20 z-0 blur-[3px]"
-                        priority
-                    />
-                    <TruckLoader />
-                    <div className="text-2xl text-white">🍳 Cooking magic is still loading…</div>
-                    <div className="text-gray-300">Just a moment...</div>
+                <Image
+                    src="/food.avif"
+                    alt="Food background"
+                    fill
+                    className="object-cover opacity-20 z-0 blur-[3px]"
+                    priority
+                />
+                <TruckLoader />
+                <div className="text-2xl text-white">🍳 Cooking magic is still loading…</div>
+                <div className="text-gray-300">Just a moment...</div>
             </div>
         );
     }

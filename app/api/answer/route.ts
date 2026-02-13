@@ -1,59 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import cohere from "@/lib/cohere";
-import { pinecone } from "@/lib/pinecone";
-import { ai } from "@/lib/gemini";
+import { getVectorStore } from "@/lib/vectorStore";
+import { openrouter } from "@/lib/openrouter";
 
 export async function POST(req: NextRequest) {
     try {
         const { question, videoId } = await req.json();
 
-        const embedRes = await cohere.embed({
-            model: "embed-english-v3.0",
-            texts: [question],
-            inputType: "search_query",
-        });
+        const vectorStore = await getVectorStore(`lecture-${videoId}`);
 
-        const [queryEmbedding] = embedRes.embeddings as number[][];
+        // similaritySearch embeds the query + retrieves top docs in one call
+        const docs = await vectorStore.similaritySearch(question, 8);
 
-        // Query Pinecone for top transcript chunks
-        const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
-        const pineconeRes = await index.query({
-            topK: 8,
-            vector: queryEmbedding,
-            includeMetadata: true,
-            filter: { videoId },
-        });
-
-        const contextChunks = pineconeRes.matches
-            ?.map((m) => m.metadata?.text)
+        const contextChunks = docs
+            .map((doc) => doc.pageContent)
             .filter(Boolean)
             .join("\n\n");
 
-        const prompt = [
-            {
-                role: "user",
-                parts: [
-                    {
-                        text: `You are a helpful AI tutor. Use the transcript chunks provided to answer the user's question clearly and in detail. Only use relevant information. If the answer is not in the transcript, say: "The transcript does not provide a direct answer to that question."`
-                    }
-                ]
-            },
-            {
-                role: "user",
-                parts: [
-                    {
-                        text: `Transcript Chunks:\n${contextChunks}\n\nQuestion: ${question}`
-                    }
-                ]
-            }
-        ];
+        const prompt = `
+You are a helpful AI tutor. Use the transcript chunks provided to answer the user's question clearly and in detail. Only use relevant information. If the answer is not in the transcript, say: "The transcript does not provide a direct answer to that question."
 
-        const geminiRes = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
-            contents: prompt,
+Transcript Chunks:
+${contextChunks}
+
+Question: ${question}
+`.trim();
+
+        const completion = await openrouter.chat.completions.create({
+            model: "stepfun/step-3.5-flash:free",
+            messages: [{ role: "user", content: prompt }],
         });
 
-        return NextResponse.json({ answer: geminiRes.text });
+        return NextResponse.json({ answer: completion.choices[0]?.message?.content });
     } catch (err) {
         console.error("Error in /api/answer:", err);
         return NextResponse.json({ error: "Failed to generate answer" }, { status: 500 });

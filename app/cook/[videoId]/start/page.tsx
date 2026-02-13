@@ -8,17 +8,21 @@ export default function CookingStepsPage() {
     const { videoId } = useParams<{ videoId: string }>();
     const router = useRouter();
     const [hasStarted, setHasStarted] = useState(false);
-    const [steps, setSteps] = useState <{step: string; timestamp: number}[]>([]);
+    const [steps, setSteps] = useState<{ step: string; timestamp: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [stepIndex, setStepIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [repeatTrigger, setRepeatTrigger] = useState(false);
     const [liveSubtitle, setLiveSubtitle] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+    const isMounted = useRef(true);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const subtitleRef = useRef("");
+    const commandBufferRef = useRef("");
+    const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY!);
+    const deepgramRef = useRef<any>(null);
     const liveRef = useRef<any>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
@@ -26,7 +30,7 @@ export default function CookingStepsPage() {
         one: 1, two: 2, three: 3, four: 4, five: 5,
         six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
         eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
-    };    
+    };
 
     useEffect(() => {
         const storedSteps = localStorage.getItem(`cook-steps-${videoId}`);
@@ -36,7 +40,7 @@ export default function CookingStepsPage() {
                 const parsedSteps = JSON.parse(storedSteps);
                 if (Array.isArray(parsedSteps)) {
                     setSteps(parsedSteps);
-                }                
+                }
             } catch (err) {
                 console.error("Failed to parse stored steps:", err);
             }
@@ -51,7 +55,8 @@ export default function CookingStepsPage() {
             return;
 
         playVoice(steps[stepIndex]?.step || "", "en", playbackRate);
-    }, [stepIndex, steps, hasStarted, playbackRate, repeatTrigger]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stepIndex, steps, hasStarted, repeatTrigger]);
 
     useEffect(() => {
         if (hasStarted) {
@@ -60,6 +65,18 @@ export default function CookingStepsPage() {
 
         return () => stopDeepgramMicRecognition();
     }, [hasStarted]);
+
+    // Cleanup audio on unmount
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+        };
+    }, []);
 
     if (loading) {
         return <div className="text-white text-xl text-center p-6">Loading cooking steps...</div>;
@@ -97,6 +114,8 @@ export default function CookingStepsPage() {
                 return;
             }
 
+            if (!isMounted.current) return; // Stop if unmounted
+
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
             audio.playbackRate = speed;
@@ -104,23 +123,33 @@ export default function CookingStepsPage() {
 
             audio.onplay = () => setIsSpeaking(true);
             audio.onended = () => {
-                setIsSpeaking(false);
+                if (isMounted.current) setIsSpeaking(false);
                 URL.revokeObjectURL(audioUrl);
             };
             audio.onerror = (err) => {
                 console.error("Audio playback failed", err);
-                setIsSpeaking(false);
+                if (isMounted.current) setIsSpeaking(false);
             };
 
             await audio.play();
         } catch (error) {
             console.error("Error playing voice:", error);
-            setIsSpeaking(false);
+            if (isMounted.current) setIsSpeaking(false);
         }
     }
 
     async function startDeepgramMicRecognition() {
         try {
+            const tokenRes = await fetch("/api/deepgram-token");
+            const { apiKey } = await tokenRes.json();
+            if (!apiKey) {
+                console.error("Failed to get Deepgram API key from server");
+                return;
+            }
+
+            const deepgram = createClient(apiKey);
+            deepgramRef.current = deepgram;
+
             const live = deepgram.listen.live({
                 model: "nova-3",
                 smart_format: true,
@@ -144,8 +173,19 @@ export default function CookingStepsPage() {
 
             live.on(LiveTranscriptionEvents.Transcript, (data) => {
                 const text = data.channel.alternatives[0]?.transcript;
-                if (text && data.is_final) {
-                    handleVoiceCommand(text.toLowerCase());
+                if (text && data.is_final && text.trim().length > 0) {
+                    if (commandTimeoutRef.current) clearTimeout(commandTimeoutRef.current);
+
+                    commandBufferRef.current += (commandBufferRef.current ? " " : "") + text.trim();
+
+                    commandTimeoutRef.current = setTimeout(() => {
+                        const fullCommand = commandBufferRef.current.trim();
+                        if (fullCommand) {
+                            handleVoiceCommand(fullCommand);
+                        }
+                        commandBufferRef.current = "";
+                        commandTimeoutRef.current = null;
+                    }, 1000);
                 }
             });
 
@@ -173,6 +213,8 @@ export default function CookingStepsPage() {
     }
 
     function handleVoiceCommand(text: string) {
+        if (isProcessing || isSpeaking) return;
+
         const normalized = text.toLowerCase();
 
         const knownCommands = [
@@ -186,6 +228,7 @@ export default function CookingStepsPage() {
         const isKnown = knownCommands.some(cmd => normalized.includes(cmd));
 
         if (isKnown) {
+            setIsProcessing(true);
             //known commands
             if (normalized.includes("next") || normalized.includes("continue") || normalized.includes("go on") || normalized.includes("forward")) {
                 nextStep();
@@ -208,14 +251,24 @@ export default function CookingStepsPage() {
             } else {
                 playVoice("Sorry, I didn't understand that command.", "en", playbackRate);
             }
+            // Unlock after a short delay to prevent double-firing on same phrase
+            setTimeout(() => {
+                if (isMounted.current) setIsProcessing(false);
+            }, 1000);
         } else {
-            // doubt: classify via Gemini
+            setIsProcessing(true);
             isDoubtQuestion(normalized).then((isDoubt) => {
                 if (isDoubt) {
-                    handleDoubtQuestion(normalized);
+                    handleDoubtQuestion(normalized).finally(() => {
+                        if (isMounted.current) setIsProcessing(false);
+                    });
                 } else {
-                    playVoice("Sorry, I didn't understand that.", "en", playbackRate);
+                    playVoice("Sorry, I didn't understand that.", "en", playbackRate).finally(() => {
+                        if (isMounted.current) setIsProcessing(false);
+                    });
                 }
+            }).catch(() => {
+                if (isMounted.current) setIsProcessing(false);
             });
         }
     }
@@ -228,7 +281,7 @@ export default function CookingStepsPage() {
         }
 
         console.log("Repeating step:", stepIndex, steps[stepIndex]?.step);
-        setRepeatTrigger((prev) => !prev); 
+        setRepeatTrigger((prev) => !prev);
     }
 
     const nextStep = () => {
@@ -280,7 +333,7 @@ export default function CookingStepsPage() {
             playVoice("That step number is out of range.", "en", playbackRate);
         }
     }
-    
+
     async function isDoubtQuestion(text: string): Promise<boolean> {
         try {
             const res = await fetch("/api/classify-intent", {
@@ -295,7 +348,7 @@ export default function CookingStepsPage() {
             console.error("Intent classification failed:", err);
             return false;
         }
-    }    
+    }
 
     async function handleDoubtQuestion(question: string) {
         try {
@@ -320,6 +373,8 @@ export default function CookingStepsPage() {
             let fullText = "";
 
             while (true) {
+                if (!isMounted.current) break; // Stop loop if unmounted
+
                 const { done, value } = await reader.read();
                 if (done) break;
 
@@ -329,8 +384,10 @@ export default function CookingStepsPage() {
                 subtitleRef.current += chunk;
                 setLiveSubtitle(subtitleRef.current);
 
-                await new Promise((r) => setTimeout(r, 0)); 
+                await new Promise((r) => setTimeout(r, 0));
             }
+
+            if (!isMounted.current) return; // Stop further processing
 
             const cleanText = fullText
                 .replace(/\*\*/g, "")
@@ -382,7 +439,7 @@ export default function CookingStepsPage() {
                     </button>
                 </div>
             ) : (
-                    
+
                 <div className="max-w-5xl mx-auto bg-white border-4 border-black rounded-xl shadow-lg p-6 sm:p-10 space-y-6">
                     <div className="aspect-video w-full border border-black rounded-md overflow-hidden">
                         <iframe
@@ -415,13 +472,13 @@ export default function CookingStepsPage() {
                         key={stepIndex}
                         className="text-lg bg-gray-50 p-4 rounded border border-gray-300 shadow-inner min-h-[120px] flex items-center justify-center"
                     >
-                            {steps[stepIndex]?.step || "You’ve finished all steps!"}
-                            
-                            {/* <p className="text-xs text-gray-400 mt-1">
+                        {steps[stepIndex]?.step || "You’ve finished all steps!"}
+
+                        {/* <p className="text-xs text-gray-400 mt-1">
                                 Timestamp: {secondsToTimestamp(steps[stepIndex]?.timestamp || 0)}
                             </p> */}
-                        </div>
-                        
+                    </div>
+
 
                     <div className="flex flex-wrap justify-center gap-4">
                         <button
@@ -432,10 +489,10 @@ export default function CookingStepsPage() {
                                     return newRate;
                                 })
                             }
-                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
-                            >
-                                <Rewind className="w-4 h-4" /> Slower ({playbackRate.toFixed(2)}x)
-                            </button>
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
+                        >
+                            <Rewind className="w-4 h-4" /> Slower ({playbackRate.toFixed(2)}x)
+                        </button>
 
                         <button
                             onClick={() =>
@@ -446,9 +503,9 @@ export default function CookingStepsPage() {
                                 })
                             }
                             className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
-                            >
+                        >
                             Faster ({playbackRate.toFixed(2)}x)  <FastForward className="w-4 h-4" />
-                            </button>
+                        </button>
                     </div>
 
                     <div className="flex flex-wrap justify-center gap-4 mt-4">
@@ -475,6 +532,6 @@ export default function CookingStepsPage() {
             )}
         </div>
     );
-      
-    
+
+
 }

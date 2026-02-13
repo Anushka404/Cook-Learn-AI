@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ai } from "@/lib/gemini";
+import { openrouter } from "@/lib/openrouter";
 import { chunkTranscript } from "@/lib/splitter";
 
 function formatTime(seconds: number) {
@@ -9,10 +9,13 @@ function formatTime(seconds: number) {
 }
 
 
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 2000;
+
 export async function POST(req: NextRequest) {
     const { transcript } = await req.json();
 
-    const chunks = chunkTranscript(transcript).slice(0, 3); // for testing, limit to 3 chunks
+    const chunks = chunkTranscript(transcript);
     const summaries = [];
 
     for (let i = 0; i < chunks.length; i++) {
@@ -50,22 +53,38 @@ ${text}
 `.trim();
 
 
-        try {
-            const res = await ai.models.generateContent({
-                model: "gemini-2.0-flash",
-                contents: prompt,
-            });
-            summaries.push({
-                timestamp,
-                output: res.text,
-            });
-            await new Promise((r) => setTimeout(r, 25000)); // delay
-        } catch (error) {
-            console.error("Error generating summary:", error);
-            summaries.push({
-                timestamp,
-                output: "Summary failed.",
-            });
+        let success = false;
+        for (let attempt = 0; attempt < MAX_RETRIES && !success; attempt++) {
+            try {
+                const completion = await openrouter.chat.completions.create({
+                    model: "stepfun/step-3.5-flash:free",
+                    messages: [{ role: "user", content: prompt }],
+                });
+                summaries.push({
+                    timestamp,
+                    output: completion.choices[0]?.message?.content,
+                });
+                success = true;
+
+                // Small delay between chunks to avoid rate limits
+                if (i < chunks.length - 1) {
+                    await new Promise((r) => setTimeout(r, BASE_DELAY_MS));
+                }
+            } catch (error: any) {
+                const isRateLimit = error?.status === 429 || error?.message?.includes("429");
+                if (isRateLimit && attempt < MAX_RETRIES - 1) {
+                    const backoff = BASE_DELAY_MS * Math.pow(2, attempt + 1);
+                    console.warn(`Rate limited on chunk ${i}, retrying in ${backoff}ms (attempt ${attempt + 1})`);
+                    await new Promise((r) => setTimeout(r, backoff));
+                } else {
+                    console.error(`Error generating summary for chunk ${i}:`, error);
+                    summaries.push({
+                        timestamp,
+                        output: "Summary failed.",
+                    });
+                    success = true; // move on to next chunk
+                }
+            }
         }
     }
     return NextResponse.json({ summaries });

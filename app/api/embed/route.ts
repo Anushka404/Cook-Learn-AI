@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chunkTranscript } from "@/lib/splitter";
-import cohere from "@/lib/cohere";
-import { pinecone } from "@/lib/pinecone";
+import { getVectorStore } from "@/lib/vectorStore";
+import { getRedisClient } from "@/lib/redis";
+import { Document } from "@langchain/core/documents";
 
 export async function POST(req: NextRequest) {
     try {
@@ -13,8 +14,17 @@ export async function POST(req: NextRequest) {
 
         const namespace = `${mode}-${videoId}`;
         console.log("Embedding for namespace:", namespace);
+
+        // Check if already exists
+        const client = await getRedisClient();
+        const existingKeys = await client.keys(`${namespace}:*`);
+
+        if (existingKeys.length > 0) {
+            console.log(`Video ${videoId} already embedded (${existingKeys.length} docs). Skipping.`);
+            return NextResponse.json({ success: true, count: existingKeys.length, message: "Already embedded" });
+        }
+
         console.log("Transcript length:", transcript.length);
-        console.log("First line:", transcript[0]?.text);
 
         const chunks = chunkTranscript(transcript);
         const texts = chunks.map((chunk) => chunk.text.trim());
@@ -23,35 +33,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Transcript resulted in empty chunks" }, { status: 400 });
         }
 
-        const response = await cohere.embed({
-            model: "embed-english-v3.0",
-            texts,
-            inputType: "search_document",
-        });
-
-        const embeddings = response.embeddings as number[][];
-
-        const vectors = embeddings.map((embedding, i) => ({
-            id: `${namespace}_chunk_${i}`,
-            values: embedding,
+        // Convert chunks to LangChain Documents
+        const docs = chunks.map((chunk, i) => new Document({
+            pageContent: texts[i],
             metadata: {
-                text: texts[i],
                 videoId,
-                start: chunks[i].start,
-                end: chunks[i].end,
+                start: chunk.start,
+                end: chunk.end,
                 mode,
             },
         }));
 
-        const pineconeIndex = pinecone.index(process.env.PINECONE_INDEX_NAME!);
-        await pineconeIndex.namespace(namespace).upsert(vectors);
+        // addDocuments handles embedding + storing in Redis in one call
+        const vectorStore = await getVectorStore(namespace);
+        await vectorStore.addDocuments(docs);
 
-        console.log(`Upserted ${vectors.length} vectors to ${namespace}`);
+        console.log(`Stored ${docs.length} documents in ${namespace}`);
 
-        await new Promise((res) => setTimeout(res, 1500));
-        return NextResponse.json({ success: true, count: vectors.length });
+        return NextResponse.json({ success: true, count: docs.length });
     } catch (err) {
         console.error("Error in /api/embed:", err);
-        return NextResponse.json({ error: "Failed to embed transcript" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to embed transcript", details: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
 }

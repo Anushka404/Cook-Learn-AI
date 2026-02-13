@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pinecone } from "@/lib/pinecone";
-import { ai } from "@/lib/gemini";
+import { getVectorStore } from "@/lib/vectorStore";
+import { openrouter } from "@/lib/openrouter";
 
 export async function POST(req: NextRequest) {
     try {
@@ -9,20 +9,27 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing videoId" }, { status: 400 });
         }
 
-        const pineconeIndex = pinecone.index(process.env.PINECONE_INDEX_NAME!);
         const namespace = `cook-${videoId}`;
         console.log("Summarizing cook for video:", videoId);
-        console.log("Querying Pinecone namespace:", namespace);
+        console.log("Querying Redis namespace:", namespace);
 
-        const result = await pineconeIndex.namespace(namespace).query({
-            topK: 100,
-            includeMetadata: true,
-            vector: Array(1024).fill(0),
-        });
+        let chunks: string[] = [];
+        try {
+            const vectorStore = await getVectorStore(namespace);
 
-        const chunks = result.matches
-            .map((match) => match.metadata?.text)
-            .filter(Boolean) as string[];
+            // Broad query to retrieve all transcript chunks for this video
+            const docs = await vectorStore.similaritySearch(
+                "cooking recipe steps ingredients instructions",
+                100,
+            );
+
+            chunks = docs
+                .map((doc) => doc.pageContent)
+                .filter(Boolean);
+        } catch (queryErr) {
+            console.error("Redis query failed (vectors may not be indexed yet):", queryErr);
+            return NextResponse.json({ error: "Transcript not yet indexed, please retry" }, { status: 404 });
+        }
 
         if (chunks.length === 0) {
             return NextResponse.json({ error: "No transcript found" }, { status: 404 });
@@ -56,20 +63,24 @@ Return JSON:
 }
 `;
 
-        const geminiRes = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
+        const completion = await openrouter.chat.completions.create({
+            model: "stepfun/step-3.5-flash:free",
+            messages: [
+                { role: "system", content: "You are a helpful cooking assistant that extracts recipes from transcripts and outputs strict JSON." },
+                { role: "user", content: prompt }
+            ],
         });
 
-        let textOutput = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        let textOutput = completion.choices[0]?.message?.content || "";
+        // Clean markdown JSON blocks if present (common in LLM output)
         textOutput = textOutput.trim().replace(/^```json\s*/, "").replace(/```$/, "");
 
         try {
             const json = JSON.parse(textOutput);
             return NextResponse.json(json);
         } catch (err) {
-            console.error("Invalid JSON from Gemini:", err, textOutput);
-            return NextResponse.json({ error: "Failed to parse Gemini response" }, { status: 500 });
+            console.error("Invalid JSON from OpenRouter:", err, textOutput);
+            return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
         }
     } catch (error) {
         console.error("Error summarizing cooking recipe:", error);

@@ -1,37 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import cohere from "@/lib/cohere";
-import { pinecone } from "@/lib/pinecone";
+import { getVectorStore } from "@/lib/vectorStore";
 
 export async function POST(req: NextRequest) {
     try {
-        //embed the question
         const { question, videoId } = await req.json();
 
-        const embedResponse = await cohere.embed({
-            model: "embed-english-v3.0",
-            texts: [question],
-            inputType: "search_query",
-        });
+        const vectorStore = await getVectorStore(`lecture-${videoId}`);
 
-        const queryEmbedding = embedResponse.embeddings as number[];
+        // similaritySearchWithScore embeds the query + searches in one call
+        const results = await vectorStore.similaritySearchWithScore(question, 5);
 
-        // Query Pinecone for similar vectors
-        const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
-        const result = await index.namespace(`lecture-${videoId}`).query({
-            topK: 5,
-            vector: queryEmbedding,
-            includeMetadata: true,
-            filter: {
-                videoId: videoId,
-            },
-        });
-
-        // Extract the relevant chunks from the result
-        const matches = result.matches?.map((match) => ({
-            score: match.score,
-            text: match.metadata?.text,
-            start: match.metadata?.start,
-        })) || [];
+        const matches = results.map(([doc, score]) => ({
+            score,
+            text: doc.pageContent,
+            start: doc.metadata?.start,
+        }));
 
         return NextResponse.json({ results: matches });
     } catch (err) {

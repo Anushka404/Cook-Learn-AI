@@ -59,7 +59,7 @@ export default function VideoPage() {
                 const sumData = await sumRes.json();
                 setSummaries(sumData?.summaries || []);
                 setSummarizing(false);
-            
+
             } catch (err) {
                 console.error("Error fetching transcript:", err);
             } finally {
@@ -78,7 +78,7 @@ export default function VideoPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 question,
-                videoId: "your_video_id_here", 
+                videoId,
             }),
         });
 
@@ -208,7 +208,7 @@ export default function VideoPage() {
             </div>
         </div>
     );
-      
+
 }
 
 // function formatTime(seconds: number | undefined): string {
