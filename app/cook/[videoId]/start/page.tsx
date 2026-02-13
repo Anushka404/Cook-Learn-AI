@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import { FastForward, Rewind, Mic } from "lucide-react";
+import Image from "next/image";
 
 export default function CookingStepsPage() {
     const { videoId } = useParams<{ videoId: string }>();
@@ -423,119 +424,160 @@ export default function CookingStepsPage() {
 
     return (
         <div className="min-h-screen bg-[#D7B6FF] px-4 py-10 font-mono text-[#1F1F1F]">
-            <>
-                <span className="absolute top-10 left-8 text-[88px] opacity-30 rotate-[10deg] select-none">🍝</span>
-                <span className="absolute bottom-24 left-12 text-[64px] opacity-30 rotate-[-15deg] select-none">🧄</span>
-                <span className="absolute top-20 right-16 text-[100px] opacity-30 rotate-[-8deg] select-none">🥕</span>
-                <span className="absolute bottom-12 right-8 text-[52px] opacity-35 rotate-[12deg] select-none">🧂</span>
-                <span className="absolute top-1/2 -translate-y-1/2 -left-1 text-[90px] opacity-30 rotate-[15deg] select-none">🥬</span>
-                <span className="absolute top-[28%] right-[38%] text-[72px] opacity-30 rotate-[-5deg] blur-xs select-none">🍳</span>
-                <span className="absolute top-1/2 -translate-y-1/2 -right-1 text-[85px] opacity-30 rotate-[-12deg] select-none">🧈</span>
-                <span className="absolute top-6 right-4 text-[56px] opacity-30 rotate-[14deg] select-none">🍅</span>
-                <span className="absolute top-52 left-32 text-[48px] opacity-30 rotate-[10deg] select-none">🧀</span>
-                <span className="absolute top-[70%] left-6 text-[60px] opacity-30 rotate-[-10deg] select-none">🫑</span>
-            </>
-            {!hasStarted ? (
-                <div className="flex items-center justify-center h-full">
-                    <button
-                        onClick={() => setHasStarted(true)}
-                        className="px-6 py-3 bg-[#FFD761] hover:bg-yellow-400 text-black rounded-full font-semibold shadow-lg transition"
-                    >
-                        🍳 Let’s Begin Cooking
-                    </button>
-                </div>
-            ) : (
+            {/* Background Image with Overlay */}
+            <div className="fixed inset-0 z-0">
+                <Image
+                    src="/food-bg1.jpg"
+                    alt="Food Background"
+                    fill
+                    className="object-contain opacity-10 blur-[1.7px]"
+                    priority
+                />
+            </div>
 
-                <div className="max-w-5xl mx-auto bg-white border-4 border-black rounded-xl shadow-lg p-6 sm:p-10 space-y-6">
-                    <div className="aspect-video w-full border border-black rounded-md overflow-hidden">
-                        <iframe
-                            src={`https://www.youtube.com/embed/${videoId}`}
-                            className="w-full h-full"
-                            allowFullScreen
-                        />
-                    </div>
-
-                    <h1 className="text-3xl font-bold text-[#1F1F1F]">Let’s Cook!</h1>
-
-                    <div className="text-sm text-amber-600 font-medium">
-                        Step {stepIndex + 1} of {steps.length}
-                    </div>
-
-                    <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
-                        <div
-                            className="h-full bg-amber-500 transition-all duration-300"
-                            style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
-                        />
-                    </div>
-
-                    {liveSubtitle && (
-                        <div className="text-amber-700 text-lg bg-yellow-100 p-2 rounded shadow-md font-mono">
-                            {liveSubtitle}
+            {/* Content */}
+            <div className="relative z-10 h-full">
+                {!hasStarted ? (
+                    <div className="flex items-center justify-center h-full min-h-[50vh]">
+                        <div className="bg-white border-4 border-black p-8 rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center max-w-md">
+                            <h1 className="text-3xl font-black font-mono mb-6 uppercase">Ready?</h1>
+                            <button
+                                onClick={() => setHasStarted(true)}
+                                className="w-full bg-[#FFD761] hover:bg-[#ffc933] text-black font-black font-mono text-xl py-4 px-8 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2"
+                            >
+                                Let’s Begin Cooking 🍳
+                            </button>
                         </div>
-                    )}
-
-                    <div
-                        key={stepIndex}
-                        className="text-lg bg-gray-50 p-4 rounded border border-gray-300 shadow-inner min-h-[120px] flex items-center justify-center"
-                    >
-                        {steps[stepIndex]?.step || "You’ve finished all steps!"}
-
-                        {/* <p className="text-xs text-gray-400 mt-1">
-                                Timestamp: {secondsToTimestamp(steps[stepIndex]?.timestamp || 0)}
-                            </p> */}
                     </div>
+                ) : (
+                    <div className="max-w-4xl mx-auto space-y-6 relative z-10 pb-20">
+
+                        {/* Header Level */}
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h1 className="text-4xl font-black font-mono text-black uppercase tracking-tight">Let’s Cook!</h1>
+                                <div className="text-lg font-bold font-mono text-gray-700 bg-white inline-block border-2 border-black px-2 py-0.5 rounded mt-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    Step {stepIndex + 1} of {steps.length}
+                                </div>
+                            </div>
+                            <div className="hidden sm:block">
+                                <div className="flex items-center gap-2 animate-pulse text-red-600 font-bold font-mono bg-red-100 border-2 border-red-500 px-3 py-1 rounded-lg">
+                                    <Mic className="w-5 h-5" />
+                                    Listening...
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="w-full h-4 bg-white rounded-full overflow-hidden border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            <div
+                                className="h-full bg-[#FF6B6B] transition-all duration-300 ease-out border-r-4 border-black" // Added border-r for segmented look
+                                style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
+                            />
+                        </div>
+
+                        {/* Content Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Video */}
+                            <div className="aspect-video w-full bg-black border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                                <iframe
+                                    src={`https://www.youtube.com/embed/${videoId}`}
+                                    className="w-full h-full"
+                                    allowFullScreen
+                                />
+                            </div>
+
+                            {/* Step Text Card */}
+                            <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 flex flex-col items-center justify-center min-h-[250px] relative">
+                                <div className="absolute -top-3 -left-3 bg-[#FFEB99] text-black font-black font-mono border-4 border-black w-10 h-10 flex items-center justify-center rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                    {stepIndex + 1}
+                                </div>
+
+                                <p className="text-xl sm:text-2xl font-bold text-center leading-relaxed font-sans">
+                                    {steps[stepIndex]?.step || "You’ve finished all steps!"}
+                                </p>
+                            </div>
+                        </div>
 
 
-                    <div className="flex flex-wrap justify-center gap-4">
-                        <button
-                            onClick={() =>
-                                setPlaybackRate((prev) => {
-                                    const newRate = Math.max(0.5, prev - 0.25);
-                                    if (audioRef.current) audioRef.current.playbackRate = newRate;
-                                    return newRate;
-                                })
-                            }
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
-                        >
-                            <Rewind className="w-4 h-4" /> Slower ({playbackRate.toFixed(2)}x)
-                        </button>
+                        {/* Streaming Output Box */}
+                        {liveSubtitle && (
+                            <div className="bg-[#1F1F1F] text-[#4af626] font-mono p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,50)] relative mt-4">
+                                <div className="absolute top-2 left-2 flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                                </div>
+                                <div className="pt-4 pl-1">
+                                    <span className="text-gray-500 mr-2 text-sm">AI Chef &gt;</span>
+                                    {liveSubtitle}
+                                    <span className="animate-pulse">_</span>
+                                </div>
+                            </div>
+                        )}
 
-                        <button
-                            onClick={() =>
-                                setPlaybackRate((prev) => {
-                                    const newRate = Math.min(2.0, prev + 0.25);
-                                    if (audioRef.current) audioRef.current.playbackRate = newRate;
-                                    return newRate;
-                                })
-                            }
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold shadow"
-                        >
-                            Faster ({playbackRate.toFixed(2)}x)  <FastForward className="w-4 h-4" />
-                        </button>
+
+                        {/* Controls */}
+                        <div className="bg-[#F0F0F0] border-4 border-black p-4 rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6">
+                            {/* Speed */}
+                            <div className="flex justify-center items-center gap-4">
+                                <button
+                                    onClick={() =>
+                                        setPlaybackRate((prev) => {
+                                            const newRate = Math.max(0.5, prev - 0.25);
+                                            if (audioRef.current) audioRef.current.playbackRate = newRate;
+                                            return newRate;
+                                        })
+                                    }
+                                    className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black rounded-lg hover:bg-gray-100 active:translate-y-0.5 active:shadow-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold transition-all"
+                                >
+                                    <Rewind className="w-4 h-4" />
+                                </button>
+                                <div className="font-mono font-bold w-24 text-center bg-black text-white py-1 rounded">
+                                    {playbackRate.toFixed(2)}x
+                                </div>
+                                <button
+                                    onClick={() =>
+                                        setPlaybackRate((prev) => {
+                                            const newRate = Math.min(2.0, prev + 0.25);
+                                            if (audioRef.current) audioRef.current.playbackRate = newRate;
+                                            return newRate;
+                                        })
+                                    }
+                                    className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black rounded-lg hover:bg-gray-100 active:translate-y-0.5 active:shadow-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold transition-all"
+                                >
+                                    <FastForward className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            {/* Main Nav */}
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <button
+                                    onClick={prevStep}
+                                    disabled={isSpeaking}
+                                    className="flex-1 bg-white hover:bg-gray-50 text-black font-black font-mono text-lg py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 transition-all"
+                                >
+                                    PREVIOUS
+                                </button>
+                                <button
+                                    onClick={nextStep}
+                                    disabled={isSpeaking} // Keep existing logic
+                                    className="flex-[2] bg-[#A0E7E5] hover:bg-[#8CDAD8] text-black font-black font-mono text-lg py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 transition-all"
+                                >
+                                    {stepIndex < steps.length - 1 ? "NEXT STEP" : "FINISH"}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="sm:hidden text-center">
+                            <div className="inline-flex items-center gap-2 animate-pulse text-red-600 font-bold font-mono text-sm bg-red-100 border border-red-500 px-3 py-1 rounded-lg">
+                                <Mic className="w-4 h-4" />
+                                Listening...
+                            </div>
+                        </div>
                     </div>
-
-                    <div className="flex flex-wrap justify-center gap-4 mt-4">
-                        <button
-                            onClick={prevStep}
-                            disabled={isSpeaking}
-                            className="px-6 py-3 rounded-full bg-[#FFB347] hover:bg-[#FFA500] text-white font-bold shadow disabled:opacity-50"
-                        >
-                            Previous Step
-                        </button>
-                        <button
-                            onClick={nextStep}
-                            disabled={isSpeaking}
-                            className="px-6 py-3 rounded-full bg-[#FFB347] hover:bg-[#FFA500] text-white font-bold shadow disabled:opacity-50"
-                        >
-                            {stepIndex < steps.length - 1 ? "Next Step" : "Finish Cooking"}
-                        </button>
-                    </div>
-                    <div className="mt-4 flex items-center justify-center gap-2 animate-pulse text-red-500 font-semibold">
-                        <Mic className="w-5 h-5 text-red-500" />
-                        Listening for voice commands...
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 
