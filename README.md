@@ -12,10 +12,10 @@
 
 ## 🚀 Features
 
-- **YouTube Transcript Summarization** using **Gemini API**
-- **Semantic Quiz Generation** powered by **Pinecone** and **Cohere embeddings**
-- **Voice Navigation for Recipes** using **Deepgram** (STT) and **ElevenLabs** (TTS)
-- **Real-time Q&A** from video content using **Gemini**
+- **YouTube Transcript Summarization** using **Step-3-flash via OpenRouter**
+- **Semantic Quiz Generation** powered by **Redis** for VectorStore and **Cohere embeddings through LangChain**
+- **Voice Navigation for Recipes** using **Deepgram** (STT and TTS)
+- **Real-time Q&A** from video content using **Step-3-flash**
 - Built with **Next.js** and **Tailwind CSS**
 
 ---
@@ -25,7 +25,8 @@
 - **Framework**: Next.js (Full Stack with App Router)
 - **Languages**: TypeScript
 - **Styling**: Tailwind CSS  
-- **AI & APIs**: Gemini, Pinecone, Cohere, Deepgram  
+- **AI & APIs**: Step-3-flash, LangChain, Cohere (from LangChain), Deepgram
+- **Vector DB**: Redis Cloud
 - **Dev Tools**: Git, Postman, Visual Studio Code, npm
 
 ---
@@ -42,8 +43,9 @@ npm install
 
 # 3. Add environment variables
 # Create a `.env` file in the root directory and add:
-GEMINI_API_KEY=your_gemini_key
-PINECONE_API_KEY=your_pinecone_key
+OPENROUTER_API_KEY=your_openrouter_key
+REDIS_URL=your_redis_url
+RAPIDAPI_KEY=your_rapidapi_key
 COHERE_API_KEY=your_cohere_key
 DEEPGRAM_API_KEY=your_deepgram_key
 
