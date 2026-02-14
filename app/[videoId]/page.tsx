@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { Play, FileText, Brain, Search, MessageSquare, Terminal } from "lucide-react";
+import { FileText, Brain, Search, Terminal } from "lucide-react";
 import TruckLoader from "@/components/TruckLoader";
 
 type SummaryBlock = {
@@ -29,7 +29,7 @@ export default function VideoPage() {
     const [answerLoading, setAnswerLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<"summary" | "transcript">("summary");
 
-    const scrollRef = useRef<HTMLDivElement>(null);
+
 
     useEffect(() => {
         async function fetchTranscript() {
