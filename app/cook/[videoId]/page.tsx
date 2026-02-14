@@ -194,7 +194,7 @@ export default function CookPage() {
                         {/* Summary Card */}
                         <div className="bg-[#FFEB99] border-4 border-black rounded-xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-1 transition-transform">
                             <p className="text-black text-lg font-medium font-mono leading-relaxed">
-                                "{summary}"
+                                &quot;{summary}&quot;
                             </p>
                         </div>
 
