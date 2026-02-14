@@ -116,6 +116,15 @@ export default function CookPage() {
         router.push(`/cook/${videoId}/start`);
     };
 
+    const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+
+    const toggleIngredient = (index: number) => {
+        const next = new Set(checkedIngredients);
+        if (next.has(index)) next.delete(index);
+        else next.add(index);
+        setCheckedIngredients(next);
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center text-center space-y-4 bg-amber-100">
@@ -127,7 +136,7 @@ export default function CookPage() {
                     priority
                 />
                 <TruckLoader />
-                <div className="text-xl font-semibold text-gray-700 animate-pulse">
+                <div className="text-xl font-semibold text-gray-700 animate-pulse font-pixeboy tracking-wider text-3xl">
                     Loading recipe...
                 </div>
             </div>
@@ -145,127 +154,205 @@ export default function CookPage() {
                     priority
                 />
                 <TruckLoader />
-                <div className="text-2xl text-white">🍳 Cooking magic is still loading…</div>
-                <div className="text-gray-300">Just a moment...</div>
+                <div className="text-4xl text-black font-pixeboy">🍳 Cooking magic is still loading…</div>
+                <div className="text-gray-600 font-medium">Just a moment...</div>
             </div>
         );
     }
     if (error) {
         return (
-            <div className="flex min-h-screen items-center justify-center text-red-600 text-center">
+            <div className="flex min-h-screen items-center justify-center text-red-600 text-center bg-[#D7B6FF] font-pixeboy text-3xl">
                 {error}
             </div>
         );
     }
 
     return (
-        <div className="relative min-h-screen bg-[#D7B6FF] px-4 py-10 font-sans">
-            {/* Floating Emojis */}
-            <div className="fixed inset-0 z-0">
+        <div className="relative min-h-screen bg-[#D7B6FF] px-4 py-8 sm:py-10 font-sans selection:bg-[#FFD761] selection:text-black">
+            {/* Floating Background Texture */}
+            <div className="fixed inset-0 z-0 opacity-10 pointer-events-none">
                 <Image
                     src="/food-bg1.jpg"
                     alt="Food Background"
                     fill
-                    className="object-cover opacity-10"
+                    className="object-cover"
                     priority
                 />
             </div>
 
-            <div className="mx-auto w-full max-w-6xl space-y-8 relative z-10">
+            <div className="mx-auto w-full max-w-7xl space-y-8 relative z-10">
+                {/* Header Section (Mobile Only) */}
+                <div className="lg:hidden bg-white border-4 border-black p-4 rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-6">
+                    <h1 className="text-3xl font-pixeboy text-black leading-tight uppercase tracking-wide text-center">
+                        {title}
+                    </h1>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* Left Column: Video & Main Info */}
-                    <div className="lg:col-span-7 flex flex-col gap-6">
+                    {/* Left Column: Sticky Sidebar (Video & CTA) */}
+                    <div className="lg:col-span-7 lg:sticky lg:top-8 flex flex-col gap-6">
                         {/* Video Container */}
-                        <div className="w-full bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                            <div className="aspect-video w-full border-b-4 border-black">
+                        <div className="group relative w-full bg-black border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                            <div className="aspect-video w-full">
                                 <iframe
                                     src={`https://www.youtube.com/embed/${videoId}`}
                                     className="w-full h-full"
                                     allowFullScreen
                                 />
                             </div>
-                            <div className="p-6 bg-white">
-                                <h1 className="text-3xl sm:text-4xl font-pixeboy font-normal text-black leading-tight uppercase tracking-wide">
-                                    {title}
-                                </h1>
+                            {/* Decorative 'TV' elements */}
+                            <div className="absolute top-4 right-4 flex gap-2 pointer-events-none">
+                                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                                <div className="w-16 h-1 bg-white/20 rounded-full backdrop-blur-sm" />
                             </div>
                         </div>
 
-                        {/* Summary Card */}
-                        <div className="bg-[#FFEB99] border-4 border-black rounded-xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-1 transition-transform">
-                            <p className="text-black text-lg font-medium font-mono leading-relaxed">
+                        {/* Title & Summary (Desktop) */}
+                        <div className="hidden lg:block space-y-4">
+                            <h1 className="text-5xl font-pixeboy text-black uppercase tracking-wide text-shadow-sm leading-none">
+                                {title}
+                            </h1>
+                            <div className="bg-[#FFEB99] border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                <p className="text-black text-lg font-medium font-mono leading-relaxed opacity-90">
+                                    &quot;{summary}&quot;
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Summary (Mobile) */}
+                        <div className="lg:hidden bg-[#FFEB99] border-4 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            <p className="text-black text-base font-medium font-mono leading-relaxed">
                                 &quot;{summary}&quot;
                             </p>
                         </div>
 
                         {/* Desktop CTA */}
-                        <div className="hidden lg:block">
+                        <div className="hidden lg:block mt-2">
                             <button
                                 onClick={handleCook}
-                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-2xl py-6 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
+                                className="group w-full relative bg-[#FF6B6B] hover:bg-[#ff5252] text-white overflow-hidden font-pixeboy text-3xl py-5 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
                             >
-                                <ChefHat className="w-8 h-8" strokeWidth={3} />
-                                START COOKING MODE
+                                <span className="relative z-10 flex items-center gap-3">
+                                    <ChefHat className="w-10 h-10 animate-bounce" strokeWidth={2.5} />
+                                    START COOKING MODE
+                                </span>
+                                {/* Button Shine Effect */}
+                                <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
                             </button>
+                            <p className="text-center mt-3 font-pixeboy text-lg opacity-60">
+                                Voice-activated hands-free guide
+                            </p>
                         </div>
                     </div>
 
-                    {/* Right Column: Ingredients & Steps Preview */}
-                    <div className="lg:col-span-5 space-y-6">
-                        {/* Ingredients */}
-                        <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6">
-                            <h2 className="text-3xl font-pixeboy mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
-                                <ShoppingBasket className="w-8 h-8" strokeWidth={2.5} />
-                                Ingredients
-                            </h2>
-                            <div className="flex flex-wrap gap-3">
-                                {Array.isArray(ingredients) &&
-                                    ingredients.map((ing, i) => (
-                                        <span
-                                            key={i}
-                                            className="bg-[#A0E7E5] text-black font-bold font-mono px-4 py-2 rounded-lg border-2 border-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all cursor-default"
-                                        >
-                                            {ing}
-                                        </span>
-                                    ))}
+                    {/* Right Column: Ingredients & Steps */}
+                    <div className="lg:col-span-5 space-y-8 pb-24 lg:pb-0">
+                        {/* Ingredients Card */}
+                        <div className="bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                            <div className="bg-[#A0E7E5] border-b-4 border-black p-4 flex items-center justify-between">
+                                <h2 className="text-3xl font-pixeboy text-black flex items-center gap-3 uppercase">
+                                    <ShoppingBasket className="w-8 h-8" strokeWidth={2.5} />
+                                    Ingredients <span className="text-sm bg-black text-white px-2 py-0.5 rounded-full font-sans">{ingredients.length}</span>
+                                </h2>
+                            </div>
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 gap-3">
+                                    {Array.isArray(ingredients) &&
+                                        ingredients.map((ing, i) => {
+                                            const isChecked = checkedIngredients.has(i);
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    onClick={() => toggleIngredient(i)}
+                                                    className={`
+                                                        cursor-pointer select-none transition-all duration-200
+                                                        flex items-center gap-3 p-3 rounded-xl border-2
+                                                        ${isChecked
+                                                            ? "bg-gray-100 border-gray-300 opacity-60 grayscale"
+                                                            : "bg-white border-black hover:bg-[#FFF4D6] hover:scale-[1.01] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                        }
+                                                    `}
+                                                >
+                                                    <div className={`
+                                                        w-6 h-6 rounded border-2 border-black flex items-center justify-center transition-colors
+                                                        ${isChecked ? "bg-black" : "bg-white"}
+                                                    `}>
+                                                        {isChecked && <div className="w-4 bg-white h-0.5 rotate-45" />} {/* Simple checkmark approximation or blank */}
+                                                        {isChecked && <div className="w-4 bg-white h-0.5 -rotate-45 absolute" />}
+                                                    </div>
+                                                    <span className={`font-mono font-bold text-sm sm:text-base ${isChecked ? "line-through text-gray-500" : "text-black"}`}>
+                                                        {ing}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Steps Preview */}
-                        <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6">
-                            <h2 className="text-3xl font-pixeboy mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
-                                <UtensilsCrossed className="w-8 h-8" strokeWidth={2.5} />
-                                Steps
-                            </h2>
-                            <div className="max-h-[400px] overflow-y-auto pr-2">
-                                <ol className="space-y-3">
+                        {/* Steps Preview Card */}
+                        <div className="bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                            <div className="bg-[#FFD761] border-b-4 border-black p-4">
+                                <h2 className="text-3xl font-pixeboy text-black flex items-center gap-3 uppercase">
+                                    <UtensilsCrossed className="w-8 h-8" strokeWidth={2.5} />
+                                    Instructions
+                                </h2>
+                            </div>
+                            <div className="p-0">
+                                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-6 space-y-6">
                                     {Array.isArray(steps) &&
                                         steps.map((stepObj, i) => (
-                                            <li key={i} className="flex gap-3 items-start font-medium text-black group">
-                                                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-md flex items-center justify-center font-mono font-bold border-2 border-black group-hover:bg-[#FFD761] group-hover:text-black transition-colors">
+                                            <div key={i} className="flex gap-4 items-start group">
+                                                <div className="flex-shrink-0 w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center font-pixeboy text-2xl border-2 border-black group-hover:bg-[#FF6B6B] group-hover:scale-110 transition-all duration-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                                                     {i + 1}
-                                                </span>
-                                                <p className="font-sans text-sm sm:text-base leading-snug pt-1">
-                                                    {stepObj.step}
-                                                </p>
-                                            </li>
+                                                </div>
+                                                <div className="pt-1">
+                                                    <p className="font-sans text-base sm:text-lg leading-relaxed text-black font-medium border-l-4 border-transparent pl-3 group-hover:border-[#FF6B6B] transition-all">
+                                                        {stepObj.step}
+                                                    </p>
+                                                </div>
+                                            </div>
                                         ))}
-                                </ol>
+                                </div>
                             </div>
-                        </div>
-
-                        {/* Mobile CTA */}
-                        <div className="block lg:hidden pt-2">
-                            <button
-                                onClick={handleCook}
-                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-xl py-5 px-6 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2"
-                            >
-                                START COOKING
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Floating Mobile CTA */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 lg:hidden z-50 bg-gradient-to-t from-[#D7B6FF] to-transparent pb-6 pt-10 pointer-events-none">
+                <button
+                    onClick={handleCook}
+                    className="pointer-events-auto w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-2xl py-4 px-6 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-3 animate-fade-in-up"
+                >
+                    <ChefHat className="w-8 h-8" strokeWidth={2.5} />
+                    START COOKING
+                </button>
+            </div>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 12px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-left: 2px solid black;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #000;
+                    border: 2px solid #fff;
+                    border-radius: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #333;
+                }
+                @keyframes shimmer {
+                    100% {
+                        transform: translateX(100%);
+                    }
+                }
+            `}</style>
         </div>
     );
 }
