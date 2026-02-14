@@ -16,6 +16,8 @@ export default function CookingStepsPage() {
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [repeatTrigger, setRepeatTrigger] = useState(false);
     const [liveSubtitle, setLiveSubtitle] = useState("");
+    const [currentDoubt, setCurrentDoubt] = useState("");
+    const [userTranscript, setUserTranscript] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const isMounted = useRef(true);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -23,6 +25,8 @@ export default function CookingStepsPage() {
     const commandBufferRef = useRef("");
     const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const handleVoiceCommandRef = useRef<((text: string) => void) | null>(null);
+    const audioQueueRef = useRef<string[]>([]);
+    const isPlayingQueueRef = useRef(false);
 
     const deepgramRef = useRef<any>(null);
     const liveRef = useRef<any>(null);
@@ -36,7 +40,6 @@ export default function CookingStepsPage() {
 
     useEffect(() => {
         const storedSteps = localStorage.getItem(`cook-steps-${videoId}`);
-        // console.log("Stored steps for video:", storedSteps);
         if (storedSteps) {
             try {
                 const parsedSteps = JSON.parse(storedSteps);
@@ -148,6 +151,56 @@ export default function CookingStepsPage() {
         }
     }
 
+    async function processAudioQueue() {
+        if (isPlayingQueueRef.current || audioQueueRef.current.length === 0) return;
+
+        isPlayingQueueRef.current = true;
+        const nextAudioUrl = audioQueueRef.current.shift();
+
+        if (nextAudioUrl) {
+            const audio = new Audio(nextAudioUrl);
+            audio.playbackRate = playbackRate;
+            audioRef.current = audio;
+
+            audio.onplay = () => setIsSpeaking(true);
+            audio.onended = () => {
+                URL.revokeObjectURL(nextAudioUrl);
+                isPlayingQueueRef.current = false;
+                processAudioQueue(); // Play next
+            };
+            audio.onerror = () => {
+                isPlayingQueueRef.current = false;
+                processAudioQueue(); // Skip error
+            };
+
+            await audio.play();
+        } else {
+            isPlayingQueueRef.current = false;
+            setIsSpeaking(false);
+        }
+    }
+
+    async function speakSentence(text: string) {
+        try {
+            const res = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text, lang: "en" }),
+            });
+
+            if (!res.ok) return;
+
+            const arrayBuffer = await res.arrayBuffer();
+            const audioBlob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            audioQueueRef.current.push(audioUrl);
+            processAudioQueue();
+        } catch (err) {
+            console.error("TTS Sentence Error", err);
+        }
+    }
+
     async function startDeepgramMicRecognition() {
         try {
             const tokenRes = await fetch("/api/deepgram-token");
@@ -187,6 +240,7 @@ export default function CookingStepsPage() {
                     if (commandTimeoutRef.current) clearTimeout(commandTimeoutRef.current);
 
                     commandBufferRef.current += (commandBufferRef.current ? " " : "") + text.trim();
+                    setUserTranscript(commandBufferRef.current);
 
                     commandTimeoutRef.current = setTimeout(() => {
                         const fullCommand = commandBufferRef.current.trim();
@@ -195,6 +249,9 @@ export default function CookingStepsPage() {
                         }
                         commandBufferRef.current = "";
                         commandTimeoutRef.current = null;
+
+                        // Clear user transcript after a short delay
+                        setTimeout(() => setUserTranscript(""), 2000);
                     }, 1000);
                 }
             });
@@ -224,16 +281,17 @@ export default function CookingStepsPage() {
 
     function handleVoiceCommand(text: string) {
         if (isProcessing) return;
-
         const normalized = text.toLowerCase();
 
-        if (isSpeaking) {
-            if (normalized.includes("pause")) {
-                pauseAudio();
-            }
+        // 1. Check for Audio Controls (always active)
+        if (isSpeaking && normalized.includes("pause")) {
+            pauseAudio();
+            // Clear queue on pause
+            audioQueueRef.current = [];
             return;
         }
 
+        // 2. Check for Navigation Commands
         const knownCommands = [
             "next", "continue", "go on", "forward",
             "repeat", "again", "do it again",
@@ -241,20 +299,16 @@ export default function CookingStepsPage() {
             "pause", "resume", "play",
             "step", "go to step"
         ];
-
         const isKnown = knownCommands.some(cmd => normalized.includes(cmd));
 
         if (isKnown) {
             setIsProcessing(true);
-            //known commands
             if (normalized.includes("next") || normalized.includes("continue") || normalized.includes("go on") || normalized.includes("forward")) {
                 nextStep();
             } else if (normalized.includes("repeat") || normalized.includes("again") || normalized.includes("do it again")) {
                 repeatCurrentStep();
             } else if (normalized.includes("back") || normalized.includes("previous") || normalized.includes("go back")) {
                 prevStep();
-            } else if (normalized.includes("pause")) {
-                pauseAudio();
             } else if (normalized.includes("resume") || normalized.includes("continue") || normalized.includes("play")) {
                 resumeAudio();
             } else if (normalized.includes("step")) {
@@ -264,27 +318,12 @@ export default function CookingStepsPage() {
                 if (matchDigit) stepNum = parseInt(matchDigit[1]);
                 else if (matchWord && wordToNumber[matchWord[1]]) stepNum = wordToNumber[matchWord[1]];
                 if (stepNum !== null) goToStep(stepNum - 1);
-                else playVoice("Sorry, I couldn't understand the step number.", "en", playbackRate);
-            } else {
-                playVoice("Sorry, I didn't understand that command.", "en", playbackRate);
             }
-            // Unlock after a short delay to prevent double-firing on same phrase
-            setTimeout(() => {
-                if (isMounted.current) setIsProcessing(false);
-            }, 1000);
+
+            setTimeout(() => { if (isMounted.current) setIsProcessing(false); }, 1000);
         } else {
             setIsProcessing(true);
-            isDoubtQuestion(normalized).then((isDoubt) => {
-                if (isDoubt) {
-                    handleDoubtQuestion(normalized).finally(() => {
-                        if (isMounted.current) setIsProcessing(false);
-                    });
-                } else {
-                    playVoice("Sorry, I didn't understand that.", "en", playbackRate).finally(() => {
-                        if (isMounted.current) setIsProcessing(false);
-                    });
-                }
-            }).catch(() => {
+            handleDoubtQuestion(normalized).finally(() => {
                 if (isMounted.current) setIsProcessing(false);
             });
         }
@@ -347,32 +386,21 @@ export default function CookingStepsPage() {
             setStepIndex(index);
             console.log(`Jumping to step ${index + 1}`);
         } else {
-            playVoice("That step number is out of range.", "en", playbackRate);
-        }
-    }
-
-    async function isDoubtQuestion(text: string): Promise<boolean> {
-        try {
-            const res = await fetch("/api/classify-intent", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text }),
-            });
-
-            const data = await res.json();
-            return res.ok && data.intent === "doubt";
-        } catch (err) {
-            console.error("Intent classification failed:", err);
-            return false;
+            speakSentence("That step number is out of range.");
         }
     }
 
     async function handleDoubtQuestion(question: string) {
         try {
             console.log("DOUBT:", question);
-
+            setCurrentDoubt(question);
             setLiveSubtitle("");
             subtitleRef.current = "";
+
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioQueueRef.current = []; // Clear previous
+            }
 
             const res = await fetch("/api/doubt-resolver", {
                 method: "POST",
@@ -380,58 +408,61 @@ export default function CookingStepsPage() {
                 body: JSON.stringify({ videoId, stepIndex, question }),
             });
 
-            if (!res.body) {
-                await playVoice("Sorry, I couldn't get a response.", "en", playbackRate);
-                return;
-            }
+            if (!res.body) return;
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
-            let fullText = "";
+
+            let buffer = "";
+            let sentenceBuffer = "";
 
             while (true) {
-                if (!isMounted.current) break; // Stop loop if unmounted
-
+                if (!isMounted.current) break;
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                fullText += chunk;
+                buffer += chunk;
+                sentenceBuffer += chunk;
 
+                // Update UI stream
                 subtitleRef.current += chunk;
                 setLiveSubtitle(subtitleRef.current);
 
-                await new Promise((r) => setTimeout(r, 0));
+                // Check for sentence endings
+                if (sentenceBuffer.match(/[.?!]\s/)) {
+                    const sentences = sentenceBuffer.split(/([.?!]\s)/);
+                    // Process all complete sentences
+                    while (sentences.length > 1) {
+                        const s = sentences.shift() || "";
+                        const p = sentences.shift() || ""; // the punctuation
+                        const fullSentence = (s + p).trim();
+
+                        if (fullSentence.length > 5) { // Avoid noise
+                            speakSentence(fullSentence
+                                .replace(/\*\*/g, "")
+                                .replace(/[_`]/g, "")
+                            );
+                        }
+                    }
+                    // Keep the remainder
+                    sentenceBuffer = sentences.join("");
+                }
             }
 
-            if (!isMounted.current) return; // Stop further processing
-
-            const cleanText = fullText
-                .replace(/\*\*/g, "")
-                .replace(/[_`]/g, "")
-                .replace(/\\n/g, "\n")
-                .replace(/\s+/g, " ")
-                .trim();
-
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
+            // Flush remaining text
+            if (sentenceBuffer.trim().length > 0) {
+                speakSentence(sentenceBuffer.trim()
+                    .replace(/\*\*/g, "")
+                    .replace(/[_`]/g, "")
+                );
             }
-
-            await playVoice(cleanText, "en", playbackRate);
 
         } catch (err) {
             console.error("Doubt resolver error:", err);
-            await playVoice("There was an error trying to answer your question.", "en", playbackRate);
+            speakSentence("Sorry, I had trouble answering that.");
         }
     }
-
-    // function secondsToTimestamp(seconds: number) {
-    //     const m = Math.floor(seconds / 60);
-    //     const s = Math.floor(seconds % 60);
-    //     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    // }      
-
     return (
         <div className="min-h-screen bg-[#D7B6FF] px-4 py-10 font-mono text-[#1F1F1F]">
             {/* Background Image with Overlay */}
@@ -509,19 +540,41 @@ export default function CookingStepsPage() {
                             </div>
                         </div>
 
+                        {/* User Voice Stream */}
+                        {userTranscript && !currentDoubt && !liveSubtitle && (
+                            <div className="bg-[#1F1F1F] text-[#E0F7FA] font-mono p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,50)] relative mt-4">
+                                <div className="absolute top-2 left-2 flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
+                                </div>
+                                <div className="pt-4 pl-1">
+                                    <span className="text-cyan-400 mr-2 text-sm font-bold">YOU &gt;&gt;</span>
+                                    {userTranscript}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Streaming Output Box */}
-                        {liveSubtitle && (
-                            <div className="bg-[#1F1F1F] text-[#4af626] font-mono p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,50)] relative mt-4">
+                        {(liveSubtitle || currentDoubt) && (
+                            <div className="bg-[#1F1F1F] font-mono p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,50)] relative mt-4">
                                 <div className="absolute top-2 left-2 flex gap-1.5">
                                     <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
                                     <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
                                     <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
                                 </div>
-                                <div className="pt-4 pl-1">
-                                    <span className="text-gray-500 mr-2 text-sm">AI Chef &gt;</span>
-                                    {liveSubtitle}
-                                    <span className="animate-pulse">_</span>
+                                <div className="pt-6 pl-1 flex flex-col gap-3">
+                                    {currentDoubt && (
+                                        <div className="border-b border-gray-700 pb-2">
+                                            <span className="text-cyan-400 mr-2 text-sm font-bold">YOU &gt;</span>
+                                            <span className="text-[#E0F7FA]">{currentDoubt}</span>
+                                        </div>
+                                    )}
+                                    {liveSubtitle && (
+                                        <div>
+                                            <span className="text-[#4af626] mr-2 text-sm font-bold">AI CHEF &gt;</span>
+                                            <span className="text-[#4af626]">{liveSubtitle}</span>
+                                            <span className="animate-pulse">_</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -601,6 +654,4 @@ export default function CookingStepsPage() {
             </div>
         </div>
     );
-
-
 }
