@@ -162,14 +162,14 @@ export default function CookPage() {
         <div className="relative min-h-screen bg-[#D7B6FF] px-4 py-10 font-sans">
             {/* Floating Emojis */}
             <div className="fixed inset-0 z-0">
-                            <Image
-                                src="/food-bg1.jpg"
-                                alt="Food Background"
-                                fill
-                                className="object-contain opacity-10 blur-[1.7px]"
-                                priority
-                            />
-                        </div>
+                <Image
+                    src="/food-bg1.jpg"
+                    alt="Food Background"
+                    fill
+                    className="object-cover opacity-10"
+                    priority
+                />
+            </div>
 
             <div className="mx-auto w-full max-w-6xl space-y-8 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -185,7 +185,7 @@ export default function CookPage() {
                                 />
                             </div>
                             <div className="p-6 bg-white">
-                                <h1 className="text-3xl sm:text-4xl font-mono font-black text-black leading-tight uppercase tracking-tight">
+                                <h1 className="text-3xl sm:text-4xl font-pixeboy font-normal text-black leading-tight uppercase tracking-wide">
                                     {title}
                                 </h1>
                             </div>
@@ -202,7 +202,7 @@ export default function CookPage() {
                         <div className="hidden lg:block">
                             <button
                                 onClick={handleCook}
-                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-black font-mono text-xl py-6 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
+                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-2xl py-6 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
                             >
                                 <ChefHat className="w-8 h-8" strokeWidth={3} />
                                 START COOKING MODE
@@ -214,7 +214,7 @@ export default function CookPage() {
                     <div className="lg:col-span-5 space-y-6">
                         {/* Ingredients */}
                         <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6">
-                            <h2 className="text-2xl font-black font-mono mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
+                            <h2 className="text-3xl font-pixeboy mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
                                 <ShoppingBasket className="w-8 h-8" strokeWidth={2.5} />
                                 Ingredients
                             </h2>
@@ -233,7 +233,7 @@ export default function CookPage() {
 
                         {/* Steps Preview */}
                         <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6">
-                            <h2 className="text-2xl font-black font-mono mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
+                            <h2 className="text-3xl font-pixeboy mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
                                 <UtensilsCrossed className="w-8 h-8" strokeWidth={2.5} />
                                 Steps
                             </h2>
@@ -258,7 +258,7 @@ export default function CookPage() {
                         <div className="block lg:hidden pt-2">
                             <button
                                 onClick={handleCook}
-                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-black font-mono text-lg py-5 px-6 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2"
+                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-xl py-5 px-6 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2"
                             >
                                 START COOKING
                             </button>

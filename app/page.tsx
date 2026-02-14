@@ -42,43 +42,56 @@ export default function Home() {
                 className="object-cover opacity-40 blur-[2px] z-0"
                 priority
             />
-            <div className="z-10 text-center mb-8">
-                <h1 className="text-4xl sm:text-5xl font-extrabold mb-3">
-                    Cook & Learn AI
-                </h1>
-                <p className="text-lg text-gray-900 font-medium ">
-                    Your smart assistant for cooking and learning with YouTube videos.
-                </p>
-            </div>
-
-            <div className="bg-gray-100 border-4 border-black shadow-lg rounded-lg p-6 w-full max-w-xl z-10">
-                <div className="flex items-center gap-3 mb-4">
-                    <Clapperboard className="text-red-600 w-6 h-6" />
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Paste a YouTube URL here..."
-                        className="flex-1 p-3 border-3 border-gray-600 rounded-md text-black focus:outline-none focus:border-blue-500"
-                    />
+            {/* Main Card Container */}
+            <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl p-8 w-full max-w-2xl z-10 relative">
+                {/* Decorative Elements */}
+                <div className="absolute -top-6 -left-6 bg-[#FF6B6B] w-16 h-16 border-4 border-black rounded-full flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 hidden sm:flex">
+                    <ChefHat className="text-white w-8 h-8" />
+                </div>
+                <div className="absolute -bottom-6 -right-6 bg-[#A0E7E5] w-16 h-16 border-4 border-black rounded-full flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 hidden sm:flex">
+                    <BookOpenCheck className="text-black w-8 h-8" />
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                    <button
-                        onClick={() => handleSubmit("summarize")}
-                        className="w-full flex items-center justify-center gap-2 bg-[#FFD761] hover:bg-yellow-400 text-black font-medium p-3 rounded shadow-md"
-                    >
-                        <BookOpenCheck className="w-5 h-5" />
-                        Summarize Lecture
-                    </button>
+                <div className="text-center mb-8">
+                    <h1 className="text-6xl sm:text-7xl font-pixeboy text-black mb-2 tracking-wide uppercase">
+                        Cook <span className="text-[#FF6B6B]">&</span> Learn AI
+                    </h1>
+                    <p className="text-lg sm:text-xl text-gray-800 font-bold font-mono bg-[#FFEB99] inline-block px-4 py-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-1">
+                        Your smart assistant for video learning
+                    </p>
+                </div>
 
-                    <button
-                        onClick={() => handleSubmit("cook")}
-                        className="w-full flex items-center justify-center gap-2 border-2 border-black text-black font-medium p-3 rounded hover:bg-green-100"
-                    >
-                        <ChefHat className="w-5 h-5" />
-                        Let’s Cook!
-                    </button>
+                <div className="space-y-6">
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Clapperboard className="text-black w-6 h-6" />
+                        </div>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Paste a YouTube URL here..."
+                            className="w-full pl-12 pr-4 py-4 text-lg font-mono border-4 border-black rounded-lg focus:outline-none focus:ring-4 focus:ring-[#A0E7E5] focus:border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder-gray-500 text-black"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button
+                            onClick={() => handleSubmit("summarize")}
+                            className="group w-full flex flex-col items-center justify-center gap-2 bg-[#FFD761] hover:bg-[#ffc933] text-black font-black font-mono text-lg py-6 px-4 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        >
+                            <BookOpenCheck className="w-8 h-8 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                            <span>SUMMARIZE</span>
+                        </button>
+
+                        <button
+                            onClick={() => handleSubmit("cook")}
+                            className="group w-full flex flex-col items-center justify-center gap-2 bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-black font-mono text-lg py-6 px-4 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        >
+                            <ChefHat className="w-8 h-8 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                            <span>COOK MODE</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

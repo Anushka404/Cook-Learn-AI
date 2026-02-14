@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
-import { FastForward, Rewind, Mic } from "lucide-react";
+import { FastForward, Rewind, Mic, Pause, Play } from "lucide-react";
 import Image from "next/image";
 
 export default function CookingStepsPage() {
@@ -129,6 +129,9 @@ export default function CookingStepsPage() {
             audioRef.current = audio;
 
             audio.onplay = () => setIsSpeaking(true);
+            audio.onpause = () => {
+                if (isMounted.current) setIsSpeaking(false);
+            };
             audio.onended = () => {
                 if (isMounted.current) setIsSpeaking(false);
                 URL.revokeObjectURL(audioUrl);
@@ -220,15 +223,22 @@ export default function CookingStepsPage() {
     }
 
     function handleVoiceCommand(text: string) {
-        if (isProcessing || isSpeaking) return;
+        if (isProcessing) return;
 
         const normalized = text.toLowerCase();
+
+        if (isSpeaking) {
+            if (normalized.includes("pause")) {
+                pauseAudio();
+            }
+            return;
+        }
 
         const knownCommands = [
             "next", "continue", "go on", "forward",
             "repeat", "again", "do it again",
             "back", "previous", "go back",
-            "pause", "resume",
+            "pause", "resume", "play",
             "step", "go to step"
         ];
 
@@ -245,7 +255,7 @@ export default function CookingStepsPage() {
                 prevStep();
             } else if (normalized.includes("pause")) {
                 pauseAudio();
-            } else if (normalized.includes("resume") || normalized.includes("continue")) {
+            } else if (normalized.includes("resume") || normalized.includes("continue") || normalized.includes("play")) {
                 resumeAudio();
             } else if (normalized.includes("step")) {
                 const matchDigit = normalized.match(/step\s+(\d+)/);
@@ -430,7 +440,7 @@ export default function CookingStepsPage() {
                     src="/food-bg1.jpg"
                     alt="Food Background"
                     fill
-                    className="object-contain opacity-10 blur-[1.7px]"
+                    className="object-cover opacity-10"
                     priority
                 />
             </div>
@@ -440,28 +450,28 @@ export default function CookingStepsPage() {
                 {!hasStarted ? (
                     <div className="flex items-center justify-center h-full min-h-[50vh]">
                         <div className="bg-white border-4 border-black p-8 rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center max-w-md">
-                            <h1 className="text-3xl font-black font-mono mb-6 uppercase">Ready?</h1>
+                            <h1 className="text-4xl font-pixeboy mb-6 uppercase tracking-wider">Ready?</h1>
                             <button
                                 onClick={() => setHasStarted(true)}
-                                className="w-full bg-[#FFD761] hover:bg-[#ffc933] text-black font-black font-mono text-xl py-4 px-8 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2"
+                                className="w-full bg-[#FFD761] hover:bg-[#ffc933] text-black font-pixeboy text-2xl py-4 px-8 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2"
                             >
                                 Let’s Begin Cooking 🍳
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <div className="max-w-4xl mx-auto space-y-6 relative z-10 pb-20">
+                    <div className="max-w-6xl mx-auto space-y-6 relative z-10 pb-20">
 
                         {/* Header Level */}
                         <div className="flex justify-between items-end">
                             <div>
-                                <h1 className="text-4xl font-black font-mono text-black uppercase tracking-tight">Let’s Cook!</h1>
-                                <div className="text-lg font-bold font-mono text-gray-700 bg-white inline-block border-2 border-black px-2 py-0.5 rounded mt-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <h1 className="text-5xl font-pixeboy text-black uppercase tracking-wide">Let’s Cook!</h1>
+                                <div className="text-xl font-pixeboy text-gray-700 bg-white inline-block border-2 border-black px-3 py-1 rounded mt-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                     Step {stepIndex + 1} of {steps.length}
                                 </div>
                             </div>
                             <div className="hidden sm:block">
-                                <div className="flex items-center gap-2 animate-pulse text-red-600 font-bold font-mono bg-red-100 border-2 border-red-500 px-3 py-1 rounded-lg">
+                                <div className="flex items-center gap-2 animate-pulse text-red-600 font-pixeboy text-lg bg-red-100 border-2 border-red-500 px-3 py-1 rounded-lg">
                                     <Mic className="w-5 h-5" />
                                     Listening...
                                 </div>
@@ -489,7 +499,7 @@ export default function CookingStepsPage() {
 
                             {/* Step Text Card */}
                             <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 flex flex-col items-center justify-center min-h-[250px] relative">
-                                <div className="absolute -top-3 -left-3 bg-[#FFEB99] text-black font-black font-mono border-4 border-black w-10 h-10 flex items-center justify-center rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                <div className="absolute -top-3 -left-3 bg-[#FFEB99] text-black font-pixeboy text-2xl border-4 border-black w-12 h-12 flex items-center justify-center rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                     {stepIndex + 1}
                                 </div>
 
@@ -522,6 +532,17 @@ export default function CookingStepsPage() {
                             {/* Speed */}
                             <div className="flex justify-center items-center gap-4">
                                 <button
+                                    onClick={isSpeaking ? pauseAudio : resumeAudio}
+                                    className="w-16 h-16 flex items-center justify-center bg-[#FFD761] hover:bg-[#ffc933] border-4 border-black rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black transition-all transform hover:scale-105"
+                                    title={isSpeaking ? "Pause" : "Play"}
+                                >
+                                    {isSpeaking ? (
+                                        <Pause className="w-8 h-8 fill-current" />
+                                    ) : (
+                                        <Play className="w-8 h-8 fill-current ml-1" />
+                                    )}
+                                </button>
+                                <button
                                     onClick={() =>
                                         setPlaybackRate((prev) => {
                                             const newRate = Math.max(0.5, prev - 0.25);
@@ -533,7 +554,7 @@ export default function CookingStepsPage() {
                                 >
                                     <Rewind className="w-4 h-4" />
                                 </button>
-                                <div className="font-mono font-bold w-24 text-center bg-black text-white py-1 rounded">
+                                <div className="font-pixeboy text-xl w-24 text-center bg-black text-white py-1 rounded">
                                     {playbackRate.toFixed(2)}x
                                 </div>
                                 <button
@@ -555,14 +576,14 @@ export default function CookingStepsPage() {
                                 <button
                                     onClick={prevStep}
                                     disabled={isSpeaking}
-                                    className="flex-1 bg-white hover:bg-gray-50 text-black font-black font-mono text-lg py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 transition-all"
+                                    className="flex-1 bg-white hover:bg-gray-50 text-black font-pixeboy text-xl py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 transition-all"
                                 >
                                     PREVIOUS
                                 </button>
                                 <button
                                     onClick={nextStep}
-                                    disabled={isSpeaking} // Keep existing logic
-                                    className="flex-[2] bg-[#A0E7E5] hover:bg-[#8CDAD8] text-black font-black font-mono text-lg py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 transition-all"
+                                    disabled={isSpeaking}
+                                    className="flex-[2] bg-[#A0E7E5] hover:bg-[#8CDAD8] text-black font-pixeboy text-xl py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 transition-all"
                                 >
                                     {stepIndex < steps.length - 1 ? "NEXT STEP" : "FINISH"}
                                 </button>
@@ -570,7 +591,7 @@ export default function CookingStepsPage() {
                         </div>
 
                         <div className="sm:hidden text-center">
-                            <div className="inline-flex items-center gap-2 animate-pulse text-red-600 font-bold font-mono text-sm bg-red-100 border border-red-500 px-3 py-1 rounded-lg">
+                            <div className="inline-flex items-center gap-2 animate-pulse text-red-600 font-pixeboy text-lg bg-red-100 border border-red-500 px-3 py-1 rounded-lg">
                                 <Mic className="w-4 h-4" />
                                 Listening...
                             </div>
