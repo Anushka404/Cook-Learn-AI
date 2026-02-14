@@ -282,9 +282,9 @@ export default function VideoPage() {
                                         <div key={index} className="relative group">
                                             <div className="absolute -left-3 top-0 bottom-0 w-1 bg-[#FBC02D] rounded-full"></div>
                                             <div className="pl-4">
-                                                <span className="inline-block bg-[#263238] text-[#FFF9C4] text-xs font-mono px-2 py-0.5 rounded mb-1">
+                                                {/* <span className="inline-block bg-[#263238] text-[#FFF9C4] text-xs font-mono px-2 py-0.5 rounded mb-1">
                                                     {formatTime(s.timestamp || 0)}
-                                                </span>
+                                                </span> */}
                                                 <p className="font-sans text-lg leading-relaxed text-gray-800 whitespace-pre-wrap">
                                                     {s.output}
                                                 </p>
@@ -302,9 +302,9 @@ export default function VideoPage() {
                                 {transcript.map((chunk, index) => (
                                     <div key={index} className="hover:bg-[#E1F5FE] p-2 rounded transition-colors group cursor-pointer">
                                         <div className="flex gap-3">
-                                            <span className="text-xs font-mono text-gray-400 group-hover:text-[#0277BD] pt-1 w-12 shrink-0">
+                                            {/* <span className="text-xs font-mono text-gray-400 group-hover:text-[#0277BD] pt-1 w-12 shrink-0">
                                                 {formatTime(chunk.start)}
-                                            </span>
+                                            </span> */}
                                             <p className="text-gray-700 font-mono text-sm leading-relaxed">
                                                 {chunk.text}
                                             </p>
