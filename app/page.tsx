@@ -43,7 +43,7 @@ export default function Home() {
                 priority
             />
             {/* Main Card Container */}
-            <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl p-8 w-full max-w-2xl z-10 relative">
+            <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl p-8 w-full max-w-4xl z-10 relative">
                 {/* Decorative Elements */}
                 <div className="absolute -top-6 -left-6 bg-[#FF6B6B] w-16 h-16 border-4 border-black rounded-full flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 hidden sm:flex">
                     <ChefHat className="text-white w-8 h-8" />
