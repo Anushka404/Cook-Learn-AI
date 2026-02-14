@@ -354,11 +354,5 @@ export default function VideoPage() {
     );
 }
 
-function formatTime(seconds: any): string {
-    const numConfig = Number(seconds);
-    if (isNaN(numConfig)) return "0:00";
-    const mins = Math.floor(numConfig / 60);
-    const secs = Math.floor(numConfig % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
+
 
