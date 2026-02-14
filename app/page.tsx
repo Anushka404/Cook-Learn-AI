@@ -39,7 +39,7 @@ export default function Home() {
                 src="/food.avif"
                 alt="Food background"
                 fill
-                className="object-cover opacity-40 blur-[2px] z-0"
+                className="object-cover opacity-20 z-0"
                 priority
             />
             {/* Main Card Container */}
