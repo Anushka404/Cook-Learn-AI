@@ -161,77 +161,109 @@ export default function CookPage() {
     return (
         <div className="relative min-h-screen bg-[#D7B6FF] px-4 py-10 font-sans">
             {/* Floating Emojis */}
-            <>
-                <span className="absolute top-10 left-8 text-[88px] opacity-30 rotate-[10deg] select-none">🍝</span>
-                <span className="absolute bottom-24 left-12 text-[64px] opacity-30 rotate-[-15deg] select-none">🧄</span>
-                <span className="absolute top-20 right-16 text-[100px] opacity-30 rotate-[-8deg] select-none">🥕</span>
-                <span className="absolute bottom-12 right-8 text-[52px] opacity-35 rotate-[12deg] select-none">🧂</span>
-                <span className="absolute top-1/2 -translate-y-1/2 -left-1 text-[90px] opacity-30 rotate-[15deg] select-none">🥬</span>
-                <span className="absolute top-[28%] right-[38%] text-[72px] opacity-30 rotate-[-5deg] blur-xs select-none">🍳</span>
-                <span className="absolute top-1/2 -translate-y-1/2 -right-1 text-[85px] opacity-30 rotate-[-12deg] select-none">🧈</span>
-                <span className="absolute top-6 right-4 text-[56px] opacity-30 rotate-[14deg] select-none">🍅</span>
-                <span className="absolute top-52 left-32 text-[48px] opacity-30 rotate-[10deg] select-none">🧀</span>
-                <span className="absolute top-[70%] left-6 text-[60px] opacity-30 rotate-[-10deg] select-none">🫑</span>
-            </>
+            <div className="fixed inset-0 z-0">
+                <Image
+                    src="/food-bg1.jpg"
+                    alt="Food Background"
+                    fill
+                    className="object-cover opacity-10"
+                    priority
+                />
+            </div>
 
-            <div className="mx-auto w-full max-w-5xl bg-white border-4 border-black rounded-xl shadow-lg p-6 sm:p-10 space-y-6">
-                {/* YouTube Video */}
-                <div className="w-full aspect-video rounded-md overflow-hidden border border-black">
-                    <iframe
-                        src={`https://www.youtube.com/embed/${videoId}`}
-                        className="w-full h-full"
-                        allowFullScreen
-                    />
-                </div>
+            <div className="mx-auto w-full max-w-6xl space-y-8 relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* Left Column: Video & Main Info */}
+                    <div className="lg:col-span-7 flex flex-col gap-6">
+                        {/* Video Container */}
+                        <div className="w-full bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                            <div className="aspect-video w-full border-b-4 border-black">
+                                <iframe
+                                    src={`https://www.youtube.com/embed/${videoId}`}
+                                    className="w-full h-full"
+                                    allowFullScreen
+                                />
+                            </div>
+                            <div className="p-6 bg-white">
+                                <h1 className="text-3xl sm:text-4xl font-pixeboy font-normal text-black leading-tight uppercase tracking-wide">
+                                    {title}
+                                </h1>
+                            </div>
+                        </div>
 
-                {/* Title and Summary */}
-                <div>
-                    <h1 className="text-3xl font-mono font-extrabold text-[#1F1F1F]">{title}</h1>
-                    <p className="text-gray-700 text-lg italic mt-2">{summary}</p>
-                </div>
+                        {/* Summary Card */}
+                        <div className="bg-[#FFEB99] border-4 border-black rounded-xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transform hover:-translate-y-1 transition-transform">
+                            <p className="text-black text-lg font-medium font-mono leading-relaxed">
+                                "{summary}"
+                            </p>
+                        </div>
 
-                {/* Ingredients */}
-                <div>
-                    <h2 className="text-2xl font-mono font-semibold mb-2 text-[#1F1F1F] flex items-center gap-2">
-                        <ShoppingBasket className="w-6 h-6 text-amber-600" />
-                        Ingredients</h2>
-                    <div className="flex flex-wrap gap-2">
-                        {Array.isArray(ingredients) &&
-                            ingredients.map((ing, i) => (
-                                <span
-                                    key={i}
-                                    className="bg-[#B8F2E6] text-[#1F1F1F] font-montserrat px-3 py-1 rounded-full border border-black text-sm flex items-center gap-1"
-                                >
-                                    <UtensilsCrossed className="w-4 h-4 text-[#1F1F1F]" />
-                                    {ing}
-                                </span>
-                            ))}
+                        {/* Desktop CTA */}
+                        <div className="hidden lg:block">
+                            <button
+                                onClick={handleCook}
+                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-2xl py-6 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
+                            >
+                                <ChefHat className="w-8 h-8" strokeWidth={3} />
+                                START COOKING MODE
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                {/* Steps */}
-                <div>
-                    <h2 className="text-2xl font-semibold font-mono mb-3 text-[#1F1F1F] flex items-center gap-2">
-                        <ChefHat className="w-6 h-6 text-amber-600" />
-                        Steps</h2>
-                    <ol className="list-decimal pl-6 space-y-2 text-gray-800">
-                        {Array.isArray(steps) &&
-                            steps.map((stepObj, i) => (
-                                <li key={i} className="bg-[#FDFDFD] p-3 font-montserrat rounded border border-gray-200 shadow-sm">
-                                    {stepObj.step}
-                                </li>
-                            ))}
-                    </ol>
-                </div>
+                    {/* Right Column: Ingredients & Steps Preview */}
+                    <div className="lg:col-span-5 space-y-6">
+                        {/* Ingredients */}
+                        <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6">
+                            <h2 className="text-3xl font-pixeboy mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
+                                <ShoppingBasket className="w-8 h-8" strokeWidth={2.5} />
+                                Ingredients
+                            </h2>
+                            <div className="flex flex-wrap gap-3">
+                                {Array.isArray(ingredients) &&
+                                    ingredients.map((ing, i) => (
+                                        <span
+                                            key={i}
+                                            className="bg-[#A0E7E5] text-black font-bold font-mono px-4 py-2 rounded-lg border-2 border-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all cursor-default"
+                                        >
+                                            {ing}
+                                        </span>
+                                    ))}
+                            </div>
+                        </div>
 
-                {/* CTA Button */}
-                <div className="text-center">
-                    <button
-                        onClick={handleCook}
-                        className="bg-[#FFD761] hover:bg-yellow-400 text-black font-semibold px-6 py-3 rounded-full shadow-lg transition"
-                    >
-                        🍳 Let’s Start Cooking
-                    </button>
+                        {/* Steps Preview */}
+                        <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6">
+                            <h2 className="text-3xl font-pixeboy mb-4 text-black flex items-center gap-3 uppercase border-b-4 border-black pb-2">
+                                <UtensilsCrossed className="w-8 h-8" strokeWidth={2.5} />
+                                Steps
+                            </h2>
+                            <div className="max-h-[400px] overflow-y-auto pr-2">
+                                <ol className="space-y-3">
+                                    {Array.isArray(steps) &&
+                                        steps.map((stepObj, i) => (
+                                            <li key={i} className="flex gap-3 items-start font-medium text-black group">
+                                                <span className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-md flex items-center justify-center font-mono font-bold border-2 border-black group-hover:bg-[#FFD761] group-hover:text-black transition-colors">
+                                                    {i + 1}
+                                                </span>
+                                                <p className="font-sans text-sm sm:text-base leading-snug pt-1">
+                                                    {stepObj.step}
+                                                </p>
+                                            </li>
+                                        ))}
+                                </ol>
+                            </div>
+                        </div>
+
+                        {/* Mobile CTA */}
+                        <div className="block lg:hidden pt-2">
+                            <button
+                                onClick={handleCook}
+                                className="w-full bg-[#FF6B6B] hover:bg-[#ff5252] text-white font-pixeboy text-xl py-5 px-6 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2"
+                            >
+                                START COOKING
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

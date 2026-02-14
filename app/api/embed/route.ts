@@ -50,6 +50,17 @@ export async function POST(req: NextRequest) {
 
         console.log(`Stored ${docs.length} documents in ${namespace}`);
 
+        // Set TTL to 24 hours to auto-cleanup Redis
+        const keys = await client.keys(`${namespace}:*`);
+        if (keys.length > 0) {
+            const multi = client.multi();
+            keys.forEach((key: string) => {
+                multi.expire(key, 86400); 
+            });
+            await multi.exec();
+            console.log(`Set 24h TTL on ${keys.length} keys for ${namespace}`);
+        }
+
         return NextResponse.json({ success: true, count: docs.length });
     } catch (err) {
         console.error("Error in /api/embed:", err);
