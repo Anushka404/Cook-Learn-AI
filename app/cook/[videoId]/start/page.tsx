@@ -413,7 +413,6 @@ export default function CookingStepsPage() {
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
 
-            let buffer = "";
             let sentenceBuffer = "";
 
             while (true) {
@@ -422,7 +421,6 @@ export default function CookingStepsPage() {
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
                 sentenceBuffer += chunk;
 
                 // Update UI stream
