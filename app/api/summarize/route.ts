@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { openrouter } from "@/lib/openrouter";
+import { openrouter, OPENROUTER_MODEL } from "@/lib/openrouter";
 import { chunkTranscript } from "@/lib/splitter";
 
 function formatTime(seconds: number) {
@@ -57,7 +57,7 @@ ${text}
         for (let attempt = 0; attempt < MAX_RETRIES && !success; attempt++) {
             try {
                 const completion = await openrouter.chat.completions.create({
-                    model: "stepfun/step-3.5-flash:free",
+                    model: OPENROUTER_MODEL,
                     messages: [{ role: "user", content: prompt }],
                 });
                 summaries.push({

@@ -204,13 +204,13 @@ export default function CookingStepsPage() {
     async function startDeepgramMicRecognition() {
         try {
             const tokenRes = await fetch("/api/deepgram-token");
-            const { apiKey } = await tokenRes.json();
-            if (!apiKey) {
-                console.error("Failed to get Deepgram API key from server");
+            const { access_token } = await tokenRes.json();
+            if (!access_token) {
+                console.error("Failed to get Deepgram token from server");
                 return;
             }
 
-            const deepgram = createClient(apiKey);
+            const deepgram = createClient({ accessToken: access_token });
             deepgramRef.current = deepgram;
 
             const live = deepgram.listen.live({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVectorStore } from "@/lib/vectorStore";
-import { openrouter } from "@/lib/openrouter";
+import { openrouter, OPENROUTER_MODEL } from "@/lib/openrouter";
 
 export async function POST(req: NextRequest) {
     try {
@@ -45,7 +45,7 @@ Now answer helpfully and naturally.
 `.trim();
 
         const stream = await openrouter.chat.completions.create({
-            model: "stepfun/step-3.5-flash:free",
+            model: OPENROUTER_MODEL,
             messages: [{ role: "user", content: prompt }],
             stream: true,
         });

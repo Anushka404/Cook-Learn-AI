@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { openrouter } from "@/lib/openrouter";
+import { openrouter, OPENROUTER_MODEL } from "@/lib/openrouter";
 
 export async function POST(req: NextRequest) {
     try {
@@ -21,7 +21,7 @@ Only reply with "doubt" or "command" — nothing else.
         `.trim();
 
         const completion = await openrouter.chat.completions.create({
-            model: "stepfun/step-3.5-flash:free",
+            model: OPENROUTER_MODEL,
             messages: [{ role: "user", content: prompt }],
         });
 
