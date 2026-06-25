@@ -59,8 +59,6 @@ Then open [http://localhost:3000](http://localhost:3000).
 
 ## 📸 Screenshots
 
-> Add images to `docs/screenshots/` and they'll render below.
-
 | Home | Lecture Mode | Cook Mode |
 |------|--------------|-----------|
 | ![Home](docs/screenshots/home.png) | ![Lecture](docs/screenshots/lecture.png) | ![Cook](docs/screenshots/cook.png) |
