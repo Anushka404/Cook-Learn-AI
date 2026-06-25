@@ -37,10 +37,13 @@ export default function VideoPage() {
     const [summaries, setSummaries] = useState<SummaryBlock[]>([]);
     const [summarizing, setSummarizing] = useState(false);
     const [question, setQuestion] = useState("");
-    const [results, setResults] = useState<any[]>([]);
     const [answer, setAnswer] = useState("");
     const [answerLoading, setAnswerLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<"summary" | "transcript">("summary");
+    // Find Context: timestamp range of the best-matching transcript passage to highlight
+    const [matchRange, setMatchRange] = useState<{ start: number; end: number } | null>(null);
+    const [matchNote, setMatchNote] = useState("");
+    const highlightRef = useRef<HTMLSpanElement | null>(null);
     const ranRef = useRef(false); // Prevent double execution (StrictMode / re-renders)
 
 
@@ -129,20 +132,36 @@ export default function VideoPage() {
                 }),
             });
             const data = await res.json();
-            setResults(data.results || []);
+            const top = (data.results || [])[0];
+            if (top && top.start != null && top.end != null) {
+                setMatchRange({ start: top.start, end: top.end });
+                setMatchNote(`Best match found — highlighted in the transcript (score ${Number(top.score).toFixed(2)}).`);
+                setActiveTab("transcript"); // jump the user to the highlighted passage
+            } else {
+                setMatchRange(null);
+                setMatchNote("No relevant passage found in this video.");
+            }
         } catch (e) {
             console.error(e);
+            setMatchNote("Search failed.");
         } finally {
             setAnswerLoading(false);
         }
     };
+
+    // Scroll the highlighted passage into view once the transcript tab is showing it
+    useEffect(() => {
+        if (activeTab === "transcript" && matchRange && highlightRef.current) {
+            highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }, [activeTab, matchRange]);
 
     const handleAnswer = async () => {
         if (!question.trim()) return;
         try {
             setAnswerLoading(true);
             setAnswer("");
-            setResults([]); // Clear previous search results to focus on answer
+            setMatchNote(""); // Clear previous Find Context status to focus on the answer
 
             const res = await fetch("/api/answer", {
                 method: "POST",
@@ -209,7 +228,7 @@ export default function VideoPage() {
 
                         {/* Output Area */}
                         <div className="flex-1 overflow-y-auto font-mono text-sm space-y-4 pr-2 custom-scrollbar-dark mb-4 bg-[#1f292e] p-3 rounded-lg border border-gray-700">
-                            {!answer && !results.length && (
+                            {!answer && !matchNote && (
                                 <p className="text-gray-500 italic">
                                     &gt; System ready.<br />
                                     &gt; Ask me anything about the lecture...
@@ -232,15 +251,13 @@ export default function VideoPage() {
                                 </div>
                             )}
 
-                            {results.length > 0 && (
-                                <div className="space-y-3 animate-fade-in">
-                                    <span className="text-[#FFD740] font-bold block">SEMANTIC_MATCHES &gt;&gt;</span>
-                                    {results.map((r, i) => (
-                                        <div key={i} className="bg-[#37474F] p-2 rounded border-l-2 border-[#FFD740]">
-                                            <p className="text-gray-300 text-xs mb-1">Match Score: {r.score?.toFixed(2)}</p>
-                                            <p className="text-white">{r.text}</p>
-                                        </div>
-                                    ))}
+                            {matchNote && (
+                                <div className="animate-fade-in flex items-start gap-2 text-[#FFD740]">
+                                    <Search className="w-4 h-4 mt-0.5 shrink-0" />
+                                    <div>
+                                        <span className="font-bold block">FIND_CONTEXT &gt;&gt;</span>
+                                        <span className="text-gray-300">{matchNote}</span>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -341,8 +358,24 @@ export default function VideoPage() {
                                 )}
                             </div>
                         ) : (
-                            <p className="text-gray-700 font-mono text-sm leading-[2rem] whitespace-pre-wrap text-justify">
-                                {decodeEntities(transcript.map((c) => c.text).join(" "))}
+                            <p className="text-gray-700 font-mono text-sm leading-[2rem] text-justify">
+                                {(() => {
+                                    let firstHit = true; // ref only the first highlighted span so we scroll to the start
+                                    return transcript.map((seg, i) => {
+                                        const hit = matchRange != null && seg.start >= matchRange.start && seg.start <= matchRange.end;
+                                        const isFirst = hit && firstHit;
+                                        if (isFirst) firstHit = false;
+                                        return (
+                                            <span
+                                                key={i}
+                                                ref={isFirst ? highlightRef : undefined}
+                                                className={hit ? "bg-[#FFE082] box-decoration-clone rounded px-0.5 transition-colors" : ""}
+                                            >
+                                                {decodeEntities(seg.text)}{" "}
+                                            </span>
+                                        );
+                                    });
+                                })()}
                             </p>
                         )}
                     </div>

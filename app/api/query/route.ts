@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
             score,
             text: doc.pageContent,
             start: doc.metadata?.start,
+            end: doc.metadata?.end,
         }));
 
         return NextResponse.json({ results: matches });

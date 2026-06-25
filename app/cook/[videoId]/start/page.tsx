@@ -19,13 +19,20 @@ export default function CookingStepsPage() {
     const [currentDoubt, setCurrentDoubt] = useState("");
     const [userTranscript, setUserTranscript] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    // Doubt answer lifecycle: collapses to a pill once the user moves to another step,
+    // stays expanded while it's the current step's answer (covers re-read while paused).
+    const [answerCollapsed, setAnswerCollapsed] = useState(false);
+    const [answerStep, setAnswerStep] = useState(0);
     const isMounted = useRef(true);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const subtitleRef = useRef("");
     const commandBufferRef = useRef("");
     const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const handleVoiceCommandRef = useRef<((text: string) => void) | null>(null);
-    const audioQueueRef = useRef<string[]>([]);
+    // Ordered slots for streamed TTS: each sentence fetches in parallel, but playback walks
+    // the array by index so order is preserved AND the next clip is usually ready (no gap).
+    const ttsSlotsRef = useRef<{ url: string | null; status: "pending" | "ready" | "error" }[]>([]);
+    const playIndexRef = useRef(0);
     const isPlayingQueueRef = useRef(false);
 
     const deepgramRef = useRef<any>(null);
@@ -87,6 +94,13 @@ export default function CookingStepsPage() {
             }
         };
     }, []);
+
+    // Collapse the doubt answer to a pill when the user moves to a different step.
+    // (Asking a doubt doesn't change stepIndex, so the answer stays expanded while it's current.)
+    useEffect(() => {
+        if (currentDoubt || liveSubtitle) setAnswerCollapsed(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stepIndex]);
 
     if (loading) {
         return <div className="text-white text-xl text-center p-6">Loading cooking steps...</div>;
@@ -151,54 +165,89 @@ export default function CookingStepsPage() {
         }
     }
 
-    async function processAudioQueue() {
-        if (isPlayingQueueRef.current || audioQueueRef.current.length === 0) return;
+    // Enqueue a slot (preserves order), kick its TTS fetch immediately (parallel), then try to
+    // play. Later sentences fetch while earlier ones play, so playback rarely waits → no gap.
+    function speakSentence(text: string) {
+        const slot: { url: string | null; status: "pending" | "ready" | "error" } = {
+            url: null,
+            status: "pending",
+        };
+        ttsSlotsRef.current.push(slot);
 
-        isPlayingQueueRef.current = true;
-        const nextAudioUrl = audioQueueRef.current.shift();
+        fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, lang: "en" }),
+        })
+            .then(async (res) => {
+                if (res.ok && isMounted.current) {
+                    const arrayBuffer = await res.arrayBuffer();
+                    slot.url = URL.createObjectURL(new Blob([arrayBuffer], { type: "audio/mpeg" }));
+                    slot.status = "ready";
+                } else {
+                    slot.status = "error";
+                }
+            })
+            .catch((err) => {
+                console.error("TTS Sentence Error", err);
+                slot.status = "error";
+            })
+            .finally(() => playNext()); // a slot the player was waiting on may now be ready
 
-        if (nextAudioUrl) {
-            const audio = new Audio(nextAudioUrl);
-            audio.playbackRate = playbackRate;
-            audioRef.current = audio;
-
-            audio.onplay = () => setIsSpeaking(true);
-            audio.onended = () => {
-                URL.revokeObjectURL(nextAudioUrl);
-                isPlayingQueueRef.current = false;
-                processAudioQueue(); // Play next
-            };
-            audio.onerror = () => {
-                isPlayingQueueRef.current = false;
-                processAudioQueue(); // Skip error
-            };
-
-            await audio.play();
-        } else {
-            isPlayingQueueRef.current = false;
-            setIsSpeaking(false);
-        }
+        playNext();
     }
 
-    async function speakSentence(text: string) {
-        try {
-            const res = await fetch("/api/tts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text, lang: "en" }),
-            });
+    // Walk slots strictly in order. Waits (returns) on a still-fetching slot; its fetch's
+    // .finally re-invokes this. One clip plays at a time so order is guaranteed.
+    function playNext() {
+        if (isPlayingQueueRef.current) return;
 
-            if (!res.ok) return;
-
-            const arrayBuffer = await res.arrayBuffer();
-            const audioBlob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-            const audioUrl = URL.createObjectURL(audioBlob);
-
-            audioQueueRef.current.push(audioUrl);
-            processAudioQueue();
-        } catch (err) {
-            console.error("TTS Sentence Error", err);
+        const slot = ttsSlotsRef.current[playIndexRef.current];
+        if (!slot) {
+            setIsSpeaking(false); // caught up (more may stream in later)
+            return;
         }
+        if (slot.status === "pending") return; // wait for this slot's fetch
+        if (slot.status === "error" || !slot.url) {
+            playIndexRef.current++;
+            playNext();
+            return;
+        }
+
+        isPlayingQueueRef.current = true;
+        const url = slot.url;
+        const audio = new Audio(url);
+        audio.playbackRate = playbackRate;
+        audioRef.current = audio;
+
+        const advance = () => {
+            URL.revokeObjectURL(url);
+            slot.url = null;
+            playIndexRef.current++;
+            isPlayingQueueRef.current = false;
+            playNext();
+        };
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = advance;
+        audio.onerror = advance;
+
+        audio.play().catch(() => advance());
+    }
+
+    // Hard-stop: drop all slots + the current clip, reset the player.
+    // Used when a new answer interrupts an in-progress one.
+    function stopSpeechQueue() {
+        ttsSlotsRef.current.forEach((s) => { if (s.url) URL.revokeObjectURL(s.url); });
+        ttsSlotsRef.current = [];
+        playIndexRef.current = 0;
+        if (audioRef.current) {
+            audioRef.current.onended = null;
+            audioRef.current.onerror = null;
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+        isPlayingQueueRef.current = false;
+        setIsSpeaking(false);
     }
 
     async function startDeepgramMicRecognition() {
@@ -285,9 +334,7 @@ export default function CookingStepsPage() {
 
         // 1. Check for Audio Controls (always active)
         if (isSpeaking && normalized.includes("pause")) {
-            pauseAudio();
-            // Clear queue on pause
-            audioQueueRef.current = [];
+            pauseAudio(); // resumable; remaining sentences stay queued and continue on "resume"
             return;
         }
 
@@ -394,13 +441,12 @@ export default function CookingStepsPage() {
         try {
             console.log("DOUBT:", question);
             setCurrentDoubt(question);
+            setAnswerStep(stepIndex);  // remember which step this answer belongs to
+            setAnswerCollapsed(false); // expand for the new answer
             setLiveSubtitle("");
             subtitleRef.current = "";
 
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioQueueRef.current = []; // Clear previous
-            }
+            stopSpeechQueue(); // interrupt any in-progress answer and reset the consumer
 
             const res = await fetch("/api/doubt-resolver", {
                 method: "POST",
@@ -551,30 +597,48 @@ export default function CookingStepsPage() {
                             </div>
                         )}
 
-                        {/* Streaming Output Box */}
+                        {/* Doubt answer — full terminal while it's the current step's answer,
+                            collapses to a pill once the user moves on (tap to re-read). */}
                         {(liveSubtitle || currentDoubt) && (
-                            <div className="bg-[#1F1F1F] font-mono p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,50)] relative mt-4">
-                                <div className="absolute top-2 left-2 flex gap-1.5">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                            answerCollapsed ? (
+                                <button
+                                    onClick={() => setAnswerCollapsed(false)}
+                                    className="mt-4 inline-flex items-center gap-2 bg-[#1F1F1F] text-[#4af626] font-mono text-sm px-4 py-2 rounded-xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                                    title="Show the last AI answer"
+                                >
+                                    💬 Last answer (re: Step {answerStep + 1}) &#9656;
+                                </button>
+                            ) : (
+                                <div className="bg-[#1F1F1F] font-mono p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,50)] relative mt-4">
+                                    <div className="absolute top-2 left-2 flex gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                                    </div>
+                                    <button
+                                        onClick={() => setAnswerCollapsed(true)}
+                                        className="absolute top-2 right-2 text-gray-400 hover:text-white text-xs font-bold px-2 py-0.5 rounded border border-gray-600 hover:border-gray-400 transition-colors"
+                                        title="Collapse to a pill"
+                                    >
+                                        Hide &#9650;
+                                    </button>
+                                    <div className="pt-6 pl-1 flex flex-col gap-3">
+                                        {currentDoubt && (
+                                            <div className="border-b border-gray-700 pb-2">
+                                                <span className="text-cyan-400 mr-2 text-sm font-bold">YOU &gt;</span>
+                                                <span className="text-[#E0F7FA]">{currentDoubt}</span>
+                                            </div>
+                                        )}
+                                        {liveSubtitle && (
+                                            <div>
+                                                <span className="text-[#4af626] mr-2 text-sm font-bold">AI CHEF &gt;</span>
+                                                <span className="text-[#4af626]">{liveSubtitle}</span>
+                                                <span className="animate-pulse">_</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="pt-6 pl-1 flex flex-col gap-3">
-                                    {currentDoubt && (
-                                        <div className="border-b border-gray-700 pb-2">
-                                            <span className="text-cyan-400 mr-2 text-sm font-bold">YOU &gt;</span>
-                                            <span className="text-[#E0F7FA]">{currentDoubt}</span>
-                                        </div>
-                                    )}
-                                    {liveSubtitle && (
-                                        <div>
-                                            <span className="text-[#4af626] mr-2 text-sm font-bold">AI CHEF &gt;</span>
-                                            <span className="text-[#4af626]">{liveSubtitle}</span>
-                                            <span className="animate-pulse">_</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            )
                         )}
 
 

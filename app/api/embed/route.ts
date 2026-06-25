@@ -26,7 +26,11 @@ export async function POST(req: NextRequest) {
 
         console.log("Transcript length:", transcript.length);
 
-        const chunks = chunkTranscript(transcript);
+        // Lecture search needs fine-grained passages so "Find Context" / Q&A pinpoint a
+        // paragraph instead of a 20-minute block. Cooking keeps coarse chunks (whole-recipe retrieval).
+        const chunks = mode === "lecture"
+            ? chunkTranscript(transcript, 60, 120)
+            : chunkTranscript(transcript);
         const texts = chunks.map((chunk) => chunk.text.trim());
 
         if (!texts.length) {
