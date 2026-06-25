@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Cook Mate AI",
+    title: "Cook & Learn AI",
     description: "Your smart assistant for cooking and learning with YouTube videos.",
 };
 

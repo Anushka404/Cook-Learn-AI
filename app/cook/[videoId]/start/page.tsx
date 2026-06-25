@@ -348,9 +348,9 @@ export default function CookingStepsPage() {
                 return newIndex;
             });
         } else {
-            alert("You have completed all the steps!");
+            speakSentence("You have completed all the steps! Great job.");
             localStorage.removeItem(`cook-steps-${videoId}`);
-            router.push(`/cook/${videoId}`);
+            setTimeout(() => router.push(`/cook/${videoId}`), 2500);
         }
     };
 
@@ -361,7 +361,7 @@ export default function CookingStepsPage() {
                 console.log("Previous step index:", newIndex);
                 return newIndex;
             } else {
-                alert("You are already at the first step!");
+                speakSentence("You are already at the first step.");
                 return prev;
             }
         });

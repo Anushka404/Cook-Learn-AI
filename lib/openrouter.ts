@@ -9,6 +9,6 @@ export const openrouter = new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
     defaultHeaders: {
         "HTTP-Referer": "http://localhost:3000", // Required by OpenRouter for free tier
-        "X-Title": "YT Summarizer AI",
+        "X-Title": "Cook & Learn AI",
     },
 });

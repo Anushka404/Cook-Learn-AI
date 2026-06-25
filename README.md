@@ -1,9 +1,9 @@
-# 🍳 Cook and Learn AI
+# 🍳 Cook & Learn AI
 
-**Cook and Learn AI** is an AI-powered web application that helps users **learn from YouTube videos** in two powerful ways:
+**Cook & Learn AI** is an AI-powered web application that helps users **learn from YouTube videos** in two powerful ways:
 
-- 📚 **Lecture Summarization & Quizzes**  
-  Generate topic-wise summaries, timestamps, and interactive quizzes from YouTube lectures.
+- 📚 **Lecture Summarization & AI Tutor**  
+  Generate topic-wise summaries from YouTube lectures, then ask follow-up questions answered from the transcript via semantic search.
   
 - 👩‍🍳 **Voice-Controlled Cooking Assistant**  
   Extract step-by-step instructions from cooking videos and guide users using voice commands.
@@ -12,10 +12,10 @@
 
 ## 🚀 Features
 
-- **YouTube Transcript Summarization** using **Step-3-flash via OpenRouter**
-- **Semantic Quiz Generation** powered by **Redis** for VectorStore and **Cohere embeddings through LangChain**
-- **Voice Navigation for Recipes** using **Deepgram** (STT and TTS)
-- **Real-time Q&A** from video content using **Step-3-flash**
+- **YouTube Transcript Summarization** using **GPT-OSS-120B (free) via OpenRouter**
+- **Semantic Search & AI Tutor Q&A** powered by **Redis** as the vector store with **Cohere embeddings through LangChain**
+- **Voice-Controlled Cooking Assistant** using **Deepgram** (live STT and TTS)
+- **Real-time Q&A** from video content using **GPT-OSS-120B via OpenRouter**
 - Built with **Next.js** and **Tailwind CSS**
 
 ---
@@ -25,7 +25,7 @@
 - **Framework**: Next.js (Full Stack with App Router)
 - **Languages**: TypeScript
 - **Styling**: Tailwind CSS  
-- **AI & APIs**: Step-3-flash, LangChain, Cohere (from LangChain), Deepgram
+- **AI & APIs**: OpenRouter (gpt-oss-120b:free), LangChain, Cohere (from LangChain), Deepgram
 - **Vector DB**: Redis Cloud
 - **Dev Tools**: Git, Postman, Visual Studio Code, npm
 
@@ -51,3 +51,26 @@ DEEPGRAM_API_KEY=your_deepgram_key
 
 # 4. Run the development server
 npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+---
+
+## 📸 Screenshots
+
+> Add images to `docs/screenshots/` and they'll render below.
+
+| Home | Lecture Mode | Cook Mode |
+|------|--------------|-----------|
+| ![Home](docs/screenshots/home.png) | ![Lecture](docs/screenshots/lecture.png) | ![Cook](docs/screenshots/cook.png) |
+
+| Voice Cooking Assistant |
+|-------------------------|
+| ![Cooking Voice Assistant](docs/screenshots/cook-voice.png) |
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).

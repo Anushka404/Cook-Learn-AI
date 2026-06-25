@@ -7,6 +7,7 @@ import { Clapperboard, ChefHat, BookOpenCheck } from "lucide-react";
 export default function Home() {
     const router = useRouter();
     const [input, setInput] = useState("");
+    const [error, setError] = useState("");
 
     const extractVideoId = (url: string): string | null => {
         try {
@@ -25,9 +26,10 @@ export default function Home() {
     const handleSubmit = (type: "summarize" | "cook") => {
         const videoId = extractVideoId(input);
         if (!videoId) {
-            alert("Invalid YouTube URL");
+            setError("Invalid YouTube URL. Paste a link like https://youtube.com/watch?v=…");
             return;
         }
+        setError("");
 
         const path = type === "cook" ? `cook/${videoId}` : `${videoId}`;
         router.push(path);
@@ -69,11 +71,17 @@ export default function Home() {
                         <input
                             type="text"
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
                             placeholder="Paste a YouTube URL here..."
                             className="w-full pl-12 pr-4 py-4 text-lg font-mono border-4 border-black rounded-lg focus:outline-none focus:ring-4 focus:ring-[#A0E7E5] focus:border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder-gray-500 text-black"
                         />
                     </div>
+
+                    {error && (
+                        <p className="font-mono font-bold text-sm bg-[#FF6B6B] text-white border-2 border-black px-3 py-2 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            {error}
+                        </p>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <button
