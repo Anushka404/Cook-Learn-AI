@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { openrouter, OPENROUTER_MODEL } from "@/lib/openrouter";
 import { chunkTranscript } from "@/lib/splitter";
 
-function formatTime(seconds: number) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
-
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 2000;
 
@@ -37,8 +30,7 @@ Given a transcript chunk from a YouTube lecture (with a timestamp range), perfor
 
 **Format:**
 
-Timestamp: ${formatTime(timestamp)}  
-Topic: <Your Topic Title>  
+Topic: <Your Topic Title>
 
 Summary:  
 <2–3 paragraph summary>

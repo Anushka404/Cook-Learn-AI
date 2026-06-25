@@ -1,10 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { FileText, Brain, Search, Terminal } from "lucide-react";
 import TruckLoader from "@/components/TruckLoader";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// YouTube transcripts arrive HTML-escaped (e.g. "we&#39;ll"); decode for display.
+function decodeEntities(text: string): string {
+    return text
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&");
+}
 
 type SummaryBlock = {
     timestamp: number;
@@ -28,11 +41,37 @@ export default function VideoPage() {
     const [answer, setAnswer] = useState("");
     const [answerLoading, setAnswerLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<"summary" | "transcript">("summary");
+    const ranRef = useRef(false); // Prevent double execution (StrictMode / re-renders)
 
 
 
     useEffect(() => {
+        if (ranRef.current) return;
+        ranRef.current = true;
+
         async function fetchTranscript() {
+            // Cache: skip transcript fetch + summarization on revisit
+            const cached = localStorage.getItem(`lecture-full-${videoId}`);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    if (data?.transcript && data?.summaries) {
+                        setTranscript(data.transcript);
+                        setSummaries(data.summaries);
+                        setLoading(false);
+                        // Re-warm Redis embeddings (idempotent; covers 24h TTL expiry) so Ask AI / Find Context keep working
+                        fetch("/api/embed", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ transcript: data.transcript, videoId, mode: "lecture" }),
+                        }).catch(() => { });
+                        return;
+                    }
+                } catch {
+                    localStorage.removeItem(`lecture-full-${videoId}`);
+                }
+            }
+
             try {
                 const res = await fetch("/api/transcript", {
                     method: "POST",
@@ -61,7 +100,10 @@ export default function VideoPage() {
                         body: JSON.stringify({ transcript: data.transcript }),
                     });
                     const sumData = await sumRes.json();
-                    setSummaries(sumData?.summaries || []);
+                    const summaries = sumData?.summaries || [];
+                    setSummaries(summaries);
+                    // Cache transcript + summaries so revisiting this video is instant
+                    localStorage.setItem(`lecture-full-${videoId}`, JSON.stringify({ transcript: data.transcript, summaries }));
                 }
             } catch (err) {
                 console.error("Error fetching transcript:", err);
@@ -184,7 +226,9 @@ export default function VideoPage() {
                             {answer && (
                                 <div className="space-y-1 animate-fade-in">
                                     <span className="text-[#A7FFEB] font-bold block mb-1">AI_RESPONSE &gt;&gt;</span>
-                                    <p className="text-[#E0F2F1] leading-relaxed whitespace-pre-wrap">{answer}</p>
+                                    <div className="prose prose-invert prose-sm max-w-none leading-relaxed prose-p:text-[#E0F2F1] prose-li:text-[#E0F2F1] prose-headings:text-[#A7FFEB] prose-strong:text-white prose-a:text-[#4DD0E1] prose-code:text-[#FFD740] prose-table:text-xs prose-th:text-[#A7FFEB] prose-hr:border-gray-600">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
+                                    </div>
                                 </div>
                             )}
 
@@ -263,12 +307,14 @@ export default function VideoPage() {
                         </button>
                     </div>
 
-                    {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-6 bg-[url('/notebook-paper.png')] bg-repeat relative custom-scrollbar">
-                        {/* Lined Paper Effect (CSS fallback if image missing) */}
-                        <div className="absolute inset-0 pointer-events-none opacity-10"
-                            style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px)', backgroundSize: '100% 2rem' }}>
-                        </div>
+                    {/* Content Area — lined-paper background (backgroundAttachment:local so the
+                        lines scroll with the content and cover the full scroll height) */}
+                    <div className="flex-1 overflow-y-auto p-6 relative custom-scrollbar"
+                        style={{
+                            backgroundImage: 'linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px)',
+                            backgroundSize: '100% 2rem',
+                            backgroundAttachment: 'local',
+                        }}>
 
                         {activeTab === "summary" ? (
                             <div className="space-y-6">
@@ -282,12 +328,9 @@ export default function VideoPage() {
                                         <div key={index} className="relative group">
                                             <div className="absolute -left-3 top-0 bottom-0 w-1 bg-[#FBC02D] rounded-full"></div>
                                             <div className="pl-4">
-                                                {/* <span className="inline-block bg-[#263238] text-[#FFF9C4] text-xs font-mono px-2 py-0.5 rounded mb-1">
-                                                    {formatTime(s.timestamp || 0)}
-                                                </span> */}
-                                                <p className="font-sans text-lg leading-relaxed text-gray-800 whitespace-pre-wrap">
-                                                    {s.output}
-                                                </p>
+                                                <div className="prose prose-sm sm:prose-base max-w-none prose-headings:font-pixeboy prose-headings:tracking-wide prose-headings:text-black prose-p:text-gray-800 prose-li:text-gray-800 prose-strong:text-black prose-table:text-sm prose-th:bg-[#FFF9C4] prose-td:border-gray-300">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.output || ""}</ReactMarkdown>
+                                                </div>
                                             </div>
                                         </div>
                                     ))
@@ -298,20 +341,9 @@ export default function VideoPage() {
                                 )}
                             </div>
                         ) : (
-                            <div className="space-y-2">
-                                {transcript.map((chunk, index) => (
-                                    <div key={index} className="hover:bg-[#E1F5FE] p-2 rounded transition-colors group cursor-pointer">
-                                        <div className="flex gap-3">
-                                            {/* <span className="text-xs font-mono text-gray-400 group-hover:text-[#0277BD] pt-1 w-12 shrink-0">
-                                                {formatTime(chunk.start)}
-                                            </span> */}
-                                            <p className="text-gray-700 font-mono text-sm leading-relaxed">
-                                                {chunk.text}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <p className="text-gray-700 font-mono text-sm leading-[2rem] whitespace-pre-wrap text-justify">
+                                {decodeEntities(transcript.map((c) => c.text).join(" "))}
+                            </p>
                         )}
                     </div>
                 </div>
