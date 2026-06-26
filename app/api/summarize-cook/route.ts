@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVectorStore } from "@/lib/vectorStore";
-import { openrouter, OPENROUTER_MODEL } from "@/lib/openrouter";
+import { OPENROUTER_MODEL, chatCompletionWithRetry } from "@/lib/openrouter";
+
+// LLMs sometimes wrap JSON in ``` fences or add stray prose. Try a direct parse, then
+// fall back to the first {...} block before giving up.
+function parseRecipeJson(raw: string): any | null {
+    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    try {
+        return JSON.parse(cleaned);
+    } catch {
+        const start = cleaned.indexOf("{");
+        const end = cleaned.lastIndexOf("}");
+        if (start !== -1 && end > start) {
+            try {
+                return JSON.parse(cleaned.slice(start, end + 1));
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -23,9 +43,12 @@ export async function POST(req: NextRequest) {
                 100,
             );
 
+            // Vector search returns chunks by relevance, NOT by time. Sort by start timestamp
+            // so the recipe is reassembled chronologically and steps stay in sequence.
             chunks = docs
-                .map((doc) => doc.pageContent)
-                .filter(Boolean);
+                .filter((doc) => doc.pageContent)
+                .sort((a, b) => (Number(a.metadata?.start) || 0) - (Number(b.metadata?.start) || 0))
+                .map((doc) => doc.pageContent);
         } catch (queryErr) {
             console.error("Redis query failed (vectors may not be indexed yet):", queryErr);
             return NextResponse.json({ error: "Transcript not yet indexed, please retry" }, { status: 404 });
@@ -63,25 +86,27 @@ Return JSON:
 }
 `;
 
-        const completion = await openrouter.chat.completions.create({
-            model: OPENROUTER_MODEL,
-            messages: [
-                { role: "system", content: "You are a helpful cooking assistant that extracts recipes from transcripts and outputs strict JSON." },
-                { role: "user", content: prompt }
-            ],
-        });
-
-        let textOutput = completion.choices[0]?.message?.content || "";
-        // Clean markdown JSON blocks if present (common in LLM output)
-        textOutput = textOutput.trim().replace(/^```json\s*/, "").replace(/```$/, "");
-
+        let completion;
         try {
-            const json = JSON.parse(textOutput);
-            return NextResponse.json(json);
+            completion = await chatCompletionWithRetry({
+                model: OPENROUTER_MODEL,
+                messages: [
+                    { role: "system", content: "You are a helpful cooking assistant that extracts recipes from transcripts and outputs strict JSON." },
+                    { role: "user", content: prompt }
+                ],
+            }, { label: "summarize-cook" });
         } catch (err) {
-            console.error("Invalid JSON from OpenRouter:", err, textOutput);
+            console.error("OpenRouter call failed:", err);
+            return NextResponse.json({ error: "AI service unavailable, please retry" }, { status: 503 });
+        }
+
+        const raw = completion.choices[0]?.message?.content || "";
+        const json = parseRecipeJson(raw);
+        if (!json) {
+            console.error("Invalid JSON from OpenRouter:", raw);
             return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
         }
+        return NextResponse.json(json);
     } catch (error) {
         console.error("Error summarizing cooking recipe:", error);
         return NextResponse.json({ error: "Server error while summarizing" }, { status: 500 });
