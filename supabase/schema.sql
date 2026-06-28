@@ -11,6 +11,7 @@ create table if not exists saved_recipes (
   title text,
   thumbnail text,
   recipe jsonb not null,            -- {summary, ingredients[], steps[{step,timestamp}]}
+  checked_ingredients int[] default '{}',  -- indices of ingredients the user has checked off
   folder_id uuid,                   -- used in Phase 2
   created_at timestamptz default now(),
   unique (user_id, video_id)

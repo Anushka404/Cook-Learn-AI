@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (guard instanceof NextResponse) return guard;
     if (!supabase) return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
 
-    const { videoId, title, thumbnail, recipe } = await req.json();
+    const { videoId, title, thumbnail, recipe, checkedIngredients } = await req.json();
     if (!videoId || !recipe) {
         return NextResponse.json({ error: "videoId and recipe are required" }, { status: 400 });
     }
@@ -32,7 +32,15 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase
         .from("saved_recipes")
         .upsert(
-            { user_id: guard.userId, video_id: videoId, title, thumbnail, recipe, mode: "cook" },
+            {
+                user_id: guard.userId,
+                video_id: videoId,
+                title,
+                thumbnail,
+                recipe,
+                mode: "cook",
+                checked_ingredients: Array.isArray(checkedIngredients) ? checkedIngredients : [],
+            },
             { onConflict: "user_id,video_id" }
         );
 

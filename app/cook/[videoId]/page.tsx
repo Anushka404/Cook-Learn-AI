@@ -20,8 +20,10 @@ export default function CookPage() {
     const [summary, setSummary] = useState("");
     const [saved, setSaved] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
     const router = useRouter();
     const ranRef = useRef(false); // Prevent double execution
+    const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (ranRef.current) return;
@@ -39,8 +41,17 @@ export default function CookPage() {
                         setIngredients(data.ingredients || []);
                         setSteps(data.steps || []);
                         setLoading(false);
-                        // Confirm saved-state in the background (DB is cross-device source of truth)
-                        fetch(`/api/recipes/${videoId}`).then((r) => setSaved(r.ok)).catch(() => { });
+                        // Confirm saved-state + restore checked ingredients in the background
+                        // (DB is the cross-device source of truth).
+                        fetch(`/api/recipes/${videoId}`).then(async (r) => {
+                            setSaved(r.ok);
+                            if (r.ok) {
+                                const row = await r.json();
+                                if (Array.isArray(row.checked_ingredients)) {
+                                    setCheckedIngredients(new Set(row.checked_ingredients));
+                                }
+                            }
+                        }).catch(() => { });
                         return; // Skip fetch
                     }
                 } catch (e) {
@@ -60,6 +71,7 @@ export default function CookPage() {
                     setIngredients(row.recipe?.ingredients || []);
                     setSteps(row.recipe?.steps || []);
                     setSaved(true);
+                    setCheckedIngredients(new Set(row.checked_ingredients || []));
                     localStorage.setItem(`cook-full-${videoId}`, JSON.stringify(data));
                     setLoading(false);
                     return;
@@ -157,6 +169,7 @@ export default function CookPage() {
                         title,
                         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
                         recipe: { summary, ingredients, steps },
+                        checkedIngredients: Array.from(checkedIngredients),
                     }),
                 });
                 if (res.ok) setSaved(true);
@@ -168,13 +181,32 @@ export default function CookPage() {
         }
     };
 
-    const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+    const persistChecked = (next: Set<number>) => {
+        if (!saved) return; // only saved recipes persist to DB
+        if (persistTimer.current) clearTimeout(persistTimer.current);
+        persistTimer.current = setTimeout(() => {
+            fetch(`/api/recipes/${videoId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ checkedIngredients: Array.from(next) }),
+            }).catch((e) => console.error("Persist checked failed", e));
+        }, 600);
+    };
 
     const toggleIngredient = (index: number) => {
         const next = new Set(checkedIngredients);
         if (next.has(index)) next.delete(index);
         else next.add(index);
         setCheckedIngredients(next);
+        persistChecked(next);
+    };
+
+    const allChecked = ingredients.length > 0 && checkedIngredients.size === ingredients.length;
+
+    const toggleAll = () => {
+        const next = allChecked ? new Set<number>() : new Set(ingredients.map((_, i) => i));
+        setCheckedIngredients(next);
+        persistChecked(next);
     };
 
     if (loading) {
@@ -320,11 +352,19 @@ export default function CookPage() {
                     <div className="lg:col-span-5 space-y-8 pb-24 lg:pb-0">
                         {/* Ingredients Card */}
                         <div className="bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                            <div className="bg-[#A0E7E5] border-b-4 border-black p-4 flex items-center justify-between">
+                            <div className="bg-[#A0E7E5] border-b-4 border-black p-4 flex items-center justify-between gap-3">
                                 <h2 className="text-3xl font-pixeboy text-black flex items-center gap-3 uppercase">
                                     <ShoppingBasket className="w-8 h-8" strokeWidth={2.5} />
                                     Ingredients <span className="text-sm bg-black text-white px-2 py-0.5 rounded-full font-sans">{ingredients.length}</span>
                                 </h2>
+                                {ingredients.length > 0 && (
+                                    <button
+                                        onClick={toggleAll}
+                                        className="shrink-0 whitespace-nowrap bg-white border-2 border-black rounded-lg px-3 py-1.5 font-sans font-bold text-sm text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
+                                    >
+                                        {allChecked ? "Deselect All" : "Select All"}
+                                    </button>
+                                )}
                             </div>
                             <div className="p-6">
                                 <div className="grid grid-cols-1 gap-3">
