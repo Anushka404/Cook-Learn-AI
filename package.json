@@ -14,6 +14,7 @@
     "@langchain/cohere": "^1.0.2",
     "@langchain/core": "^1.1.24",
     "@langchain/redis": "^1.1.0",
+    "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/typography": "^0.5.20",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",

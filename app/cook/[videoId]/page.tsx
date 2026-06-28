@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import {
     ShoppingBasket,
     UtensilsCrossed,
-    ChefHat
+    ChefHat,
+    Bookmark
 } from "lucide-react";
 import TruckLoader from "@/components/TruckLoader";
 
@@ -17,6 +18,8 @@ export default function CookPage() {
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [summary, setSummary] = useState("");
+    const [saved, setSaved] = useState(false);
+    const [saving, setSaving] = useState(false);
     const router = useRouter();
     const ranRef = useRef(false); // Prevent double execution
 
@@ -25,7 +28,7 @@ export default function CookPage() {
         ranRef.current = true;
 
         async function fetchRecipe() {
-            // Check cache first
+            // 1. Local cache (fastest, same-device)
             const cached = localStorage.getItem(`cook-full-${videoId}`);
             if (cached) {
                 try {
@@ -36,6 +39,8 @@ export default function CookPage() {
                         setIngredients(data.ingredients || []);
                         setSteps(data.steps || []);
                         setLoading(false);
+                        // Confirm saved-state in the background (DB is cross-device source of truth)
+                        fetch(`/api/recipes/${videoId}`).then((r) => setSaved(r.ok)).catch(() => { });
                         return; // Skip fetch
                     }
                 } catch (e) {
@@ -44,6 +49,26 @@ export default function CookPage() {
                 }
             }
 
+            // 2. Saved recipe in DB (cross-device, zero pipeline cost)
+            try {
+                const dbRes = await fetch(`/api/recipes/${videoId}`);
+                if (dbRes.ok) {
+                    const row = await dbRes.json();
+                    const data = { title: row.title, ...row.recipe };
+                    setTitle(row.title || "");
+                    setSummary(row.recipe?.summary || "");
+                    setIngredients(row.recipe?.ingredients || []);
+                    setSteps(row.recipe?.steps || []);
+                    setSaved(true);
+                    localStorage.setItem(`cook-full-${videoId}`, JSON.stringify(data));
+                    setLoading(false);
+                    return;
+                }
+            } catch (e) {
+                console.error("DB recipe lookup failed", e);
+            }
+
+            // 3. Full pipeline (transcript -> embed -> summarize)
             try {
                 const transcriptRes = await fetch("/api/transcript", {
                     method: "POST",
@@ -116,6 +141,33 @@ export default function CookPage() {
         router.push(`/cook/${videoId}/start`);
     };
 
+    const handleSave = async () => {
+        if (saving) return;
+        setSaving(true);
+        try {
+            if (saved) {
+                const res = await fetch(`/api/recipes/${videoId}`, { method: "DELETE" });
+                if (res.ok) setSaved(false);
+            } else {
+                const res = await fetch("/api/recipes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        videoId,
+                        title,
+                        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                        recipe: { summary, ingredients, steps },
+                    }),
+                });
+                if (res.ok) setSaved(true);
+            }
+        } catch (e) {
+            console.error("Save toggle failed", e);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
 
     const toggleIngredient = (index: number) => {
@@ -182,10 +234,18 @@ export default function CookPage() {
 
             <div className="mx-auto w-full max-w-7xl space-y-8 relative z-10">
                 {/* Header Section (Mobile Only) */}
-                <div className="lg:hidden bg-white border-4 border-black p-4 rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-6">
-                    <h1 className="text-3xl font-pixeboy text-black leading-tight uppercase tracking-wide text-center">
+                <div className="lg:hidden bg-white border-4 border-black p-4 rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-6 flex items-center gap-3">
+                    <h1 className="flex-1 text-3xl font-pixeboy text-black leading-tight uppercase tracking-wide text-center">
                         {title}
                     </h1>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        aria-label={saved ? "Remove from cookbook" : "Save to cookbook"}
+                        className={`shrink-0 w-12 h-12 border-2 border-black rounded-lg shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center disabled:opacity-60 ${saved ? "bg-[#FFD761]" : "bg-white"}`}
+                    >
+                        <Bookmark className="w-6 h-6 text-black" strokeWidth={2.5} fill={saved ? "currentColor" : "none"} />
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -228,17 +288,28 @@ export default function CookPage() {
 
                         {/* Desktop CTA */}
                         <div className="hidden lg:block mt-2">
-                            <button
-                                onClick={handleCook}
-                                className="group w-full relative bg-[#FF6B6B] hover:bg-[#ff5252] text-white overflow-hidden font-pixeboy text-3xl py-5 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
-                            >
-                                <span className="relative z-10 flex items-center gap-3">
-                                    <ChefHat className="w-10 h-10 animate-bounce" strokeWidth={2.5} />
-                                    START COOKING MODE
-                                </span>
-                                {/* Button Shine Effect */}
-                                <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleCook}
+                                    className="group flex-1 relative bg-[#FF6B6B] hover:bg-[#ff5252] text-white overflow-hidden font-pixeboy text-3xl py-5 px-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center gap-3"
+                                >
+                                    <span className="relative z-10 flex items-center gap-3">
+                                        <ChefHat className="w-10 h-10 animate-bounce" strokeWidth={2.5} />
+                                        START COOKING MODE
+                                    </span>
+                                    {/* Button Shine Effect */}
+                                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    aria-label={saved ? "Remove from cookbook" : "Save to cookbook"}
+                                    title={saved ? "Saved to cookbook" : "Save to cookbook"}
+                                    className={`shrink-0 w-20 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed ${saved ? "bg-[#FFD761]" : "bg-white hover:bg-[#FFF4D6]"}`}
+                                >
+                                    <Bookmark className="w-9 h-9 text-black" strokeWidth={2.5} fill={saved ? "currentColor" : "none"} />
+                                </button>
+                            </div>
                             <p className="text-center mt-3 font-pixeboy text-lg opacity-60">
                                 Voice-activated hands-free guide
                             </p>
