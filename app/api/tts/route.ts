@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
+    const guard = await apiGuard("tts");
+    if (guard instanceof NextResponse) return guard;
+
     try {
         // 1. Parse Request Body
         const { text, lang = "en" } = await req.json();

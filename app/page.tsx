@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Clapperboard, ChefHat, BookOpenCheck } from "lucide-react";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 
 export default function Home() {
     const router = useRouter();
@@ -36,7 +37,20 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-amber-100 flex flex-col items-center justify-center p-6 font-sans text-black overflow-hidden">
+        <div className="relative min-h-screen bg-amber-100 flex flex-col items-center justify-center p-6 font-sans text-black overflow-hidden">
+            {/* Auth control */}
+            <div className="fixed top-4 right-4 z-30">
+                <Show when="signed-out">
+                    <SignInButton mode="modal">
+                        <button className="bg-white border-2 border-black px-4 py-2 rounded-lg font-mono font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all">
+                            Sign In
+                        </button>
+                    </SignInButton>
+                </Show>
+                <Show when="signed-in">
+                    <UserButton />
+                </Show>
+            </div>
             <Image
                 src="/food.avif"
                 alt="Food background"

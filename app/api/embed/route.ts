@@ -3,8 +3,12 @@ import { chunkTranscript } from "@/lib/splitter";
 import { getVectorStore } from "@/lib/vectorStore";
 import { getRedisClient } from "@/lib/redis";
 import { Document } from "@langchain/core/documents";
+import { apiGuard } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
+    const guard = await apiGuard("standard");
+    if (guard instanceof NextResponse) return guard;
+
     try {
         const { transcript, videoId, mode = "lecture" } = await req.json();
 
