@@ -1,7 +1,11 @@
 import { createClient } from "@deepgram/sdk";
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/ratelimit";
 
 export async function GET() {
+    const guard = await apiGuard("standard");
+    if (guard instanceof NextResponse) return guard;
+
     const apiKey = process.env.DEEPGRAM_API_KEY;
 
     if (!apiKey) {

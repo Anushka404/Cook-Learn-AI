@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVectorStore } from "@/lib/vectorStore";
 import { openrouter, OPENROUTER_MODEL } from "@/lib/openrouter";
+import { apiGuard } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
+    const guard = await apiGuard("llm");
+    if (guard instanceof NextResponse) return guard;
+
     try {
         const { question, videoId } = await req.json();
 

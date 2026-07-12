@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OPENROUTER_MODEL, chatCompletionWithRetry } from "@/lib/openrouter";
 import { chunkTranscript } from "@/lib/splitter";
+import { apiGuard } from "@/lib/ratelimit";
 
 // Cap on simultaneous LLM calls. Keeps the free-tier from 429-ing while still being
 // far faster than one-at-a-time. Tune up if the provider allows more throughput.
@@ -39,6 +40,9 @@ ${text}
 }
 
 export async function POST(req: NextRequest) {
+    const guard = await apiGuard("llm");
+    if (guard instanceof NextResponse) return guard;
+
     const { transcript } = await req.json();
 
     const chunks = chunkTranscript(transcript);

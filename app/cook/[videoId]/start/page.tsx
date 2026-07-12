@@ -2,13 +2,14 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
-import { FastForward, Rewind, Mic, Pause, Play } from "lucide-react";
+import { FastForward, Rewind, Mic, MicOff, Pause, Play } from "lucide-react";
 import Image from "next/image";
 
 export default function CookingStepsPage() {
     const { videoId } = useParams<{ videoId: string }>();
     const router = useRouter();
     const [hasStarted, setHasStarted] = useState(false);
+    const [micOn, setMicOn] = useState(true);
     const [steps, setSteps] = useState<{ step: string; timestamp: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [stepIndex, setStepIndex] = useState(0);
@@ -71,13 +72,13 @@ export default function CookingStepsPage() {
     }, [stepIndex, steps, hasStarted, repeatTrigger]);
 
     useEffect(() => {
-        if (hasStarted) {
+        if (hasStarted && micOn) {
             startDeepgramMicRecognition();
         }
 
         return () => stopDeepgramMicRecognition();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasStarted]);
+    }, [hasStarted, micOn]);
 
     useEffect(() => {
         handleVoiceCommandRef.current = handleVoiceCommand;
@@ -545,12 +546,17 @@ export default function CookingStepsPage() {
                                     Step {stepIndex + 1} of {steps.length}
                                 </div>
                             </div>
-                            <div className="hidden sm:block">
-                                <div className="flex items-center gap-2 animate-pulse text-red-600 font-pixeboy text-lg bg-red-100 border-2 border-red-500 px-3 py-1 rounded-lg">
-                                    <Mic className="w-5 h-5" />
-                                    Listening...
-                                </div>
-                            </div>
+                            <button
+                                onClick={() => setMicOn((v) => !v)}
+                                title={micOn ? "Turn mic off" : "Turn mic on"}
+                                className={`hidden sm:flex items-center gap-2 font-pixeboy text-lg border-2 px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all ${micOn
+                                    ? "text-red-600 bg-red-100 border-red-500 animate-pulse"
+                                    : "text-gray-700 bg-gray-200 border-black"
+                                    }`}
+                            >
+                                {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                                {micOn ? "Listening..." : "Mic Off"}
+                            </button>
                         </div>
 
                         {/* Progress Bar */}
@@ -706,10 +712,17 @@ export default function CookingStepsPage() {
                         </div>
 
                         <div className="sm:hidden text-center">
-                            <div className="inline-flex items-center gap-2 animate-pulse text-red-600 font-pixeboy text-lg bg-red-100 border border-red-500 px-3 py-1 rounded-lg">
-                                <Mic className="w-4 h-4" />
-                                Listening...
-                            </div>
+                            <button
+                                onClick={() => setMicOn((v) => !v)}
+                                title={micOn ? "Turn mic off" : "Turn mic on"}
+                                className={`inline-flex items-center gap-2 font-pixeboy text-lg border-2 px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all ${micOn
+                                    ? "text-red-600 bg-red-100 border-red-500 animate-pulse"
+                                    : "text-gray-700 bg-gray-200 border-black"
+                                    }`}
+                            >
+                                {micOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                                {micOn ? "Listening..." : "Mic Off"}
+                            </button>
                         </div>
                     </div>
                 )}

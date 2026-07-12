@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiGuard } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
+    const guard = await apiGuard("standard");
+    if (guard instanceof NextResponse) return guard;
+
     try {
         const { videoId } = await req.json();
         if (!videoId) 

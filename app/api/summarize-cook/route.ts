@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVectorStore } from "@/lib/vectorStore";
 import { OPENROUTER_MODEL, chatCompletionWithRetry } from "@/lib/openrouter";
+import { apiGuard } from "@/lib/ratelimit";
 
 // LLMs sometimes wrap JSON in ``` fences or add stray prose. Try a direct parse, then
 // fall back to the first {...} block before giving up.
@@ -23,6 +24,9 @@ function parseRecipeJson(raw: string): any | null {
 }
 
 export async function POST(req: NextRequest) {
+    const guard = await apiGuard("llm");
+    if (guard instanceof NextResponse) return guard;
+
     try {
         const { videoId } = await req.json();
         if (!videoId) {

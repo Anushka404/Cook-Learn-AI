@@ -42,12 +42,22 @@ cd Cook-Learn-AI
 npm install
 
 # 3. Add environment variables
-# Create a `.env` file in the root directory and add:
+# Create a `.env.local` file in the root directory and add:
 OPENROUTER_API_KEY=your_openrouter_key
 REDIS_URL=your_redis_url
 RAPIDAPI_KEY=your_rapidapi_key
 COHERE_API_KEY=your_cohere_key
 DEEPGRAM_API_KEY=your_deepgram_key
+
+# Auth (Clerk) — required to run
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+
+# Rate limiting (Upstash Redis) — optional; if unset, limiting is disabled (dev fail-open)
+UPSTASH_REDIS_REST_URL=your_upstash_rest_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
 
 # 4. Run the development server
 npm run dev
