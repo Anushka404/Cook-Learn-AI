@@ -10,7 +10,7 @@ export async function GET() {
 
     const { data, error } = await supabase
         .from("saved_recipes")
-        .select("video_id, title, thumbnail, created_at")
+        .select("video_id, title, thumbnail, created_at, folder_id")
         .eq("user_id", guard.userId)
         .order("created_at", { ascending: false });
 
