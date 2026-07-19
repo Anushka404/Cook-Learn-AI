@@ -40,6 +40,7 @@ export default function CookingStepsPage() {
     const liveRef = useRef<any>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
+    const historyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const wordToNumber: Record<string, number> = {
         one: 1, two: 2, three: 3, four: 4, five: 5,
         six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
@@ -70,6 +71,34 @@ export default function CookingStepsPage() {
         playVoice(steps[stepIndex]?.step || "", "en", playbackRate);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stepIndex, steps, hasStarted, repeatTrigger]);
+
+    // Resume from the last cooked step (cross-device) once steps are loaded.
+    useEffect(() => {
+        if (steps.length === 0) return;
+        let cancelled = false;
+        fetch(`/api/history?videoId=${videoId}`)
+            .then((r) => r.json())
+            .then((d) => {
+                const h = d.history;
+                if (!cancelled && h && h.status === "in_progress" &&
+                    typeof h.last_step_index === "number" &&
+                    h.last_step_index > 0 && h.last_step_index < steps.length) {
+                    setStepIndex(h.last_step_index);
+                }
+            })
+            .catch(() => { });
+        return () => { cancelled = true; };
+    }, [steps, videoId]);
+
+    // Persist progress (debounced) while cooking.
+    useEffect(() => {
+        if (!hasStarted) return;
+        if (historyTimer.current) clearTimeout(historyTimer.current);
+        historyTimer.current = setTimeout(() => {
+            saveHistory({ lastStepIndex: stepIndex, totalSteps: steps.length, status: "in_progress" });
+        }, 800);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stepIndex, hasStarted]);
 
     useEffect(() => {
         if (hasStarted && micOn) {
@@ -329,6 +358,14 @@ export default function CookingStepsPage() {
         liveRef.current = null;
     }
 
+    function saveHistory(fields: Record<string, unknown>) {
+        fetch("/api/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ videoId, ...fields }),
+        }).catch((e) => console.error("History save failed", e));
+    }
+
     function handleVoiceCommand(text: string) {
         if (isProcessing) return;
         const normalized = text.toLowerCase();
@@ -397,6 +434,7 @@ export default function CookingStepsPage() {
             });
         } else {
             speakSentence("You have completed all the steps! Great job.");
+            saveHistory({ status: "completed", lastStepIndex: steps.length - 1, totalSteps: steps.length });
             localStorage.removeItem(`cook-steps-${videoId}`);
             setTimeout(() => router.push(`/cook/${videoId}`), 2500);
         }
@@ -527,8 +565,26 @@ export default function CookingStepsPage() {
                     <div className="flex items-center justify-center h-full min-h-[50vh]">
                         <div className="bg-white border-4 border-black p-8 rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center max-w-md">
                             <h1 className="text-4xl font-pixeboy mb-6 uppercase tracking-wider">Ready?</h1>
+                            {stepIndex > 0 && (
+                                <p className="font-mono text-sm font-bold text-gray-700 mb-4 bg-[#A0E7E5] border-2 border-black rounded-lg px-3 py-2 inline-block shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    Resuming from step {stepIndex + 1}
+                                </p>
+                            )}
                             <button
-                                onClick={() => setHasStarted(true)}
+                                onClick={() => {
+                                    setHasStarted(true);
+                                    let recipeTitle: string | null = null;
+                                    try {
+                                        recipeTitle = JSON.parse(localStorage.getItem(`cook-full-${videoId}`) || "{}").title || null;
+                                    } catch { }
+                                    saveHistory({
+                                        title: recipeTitle,
+                                        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                                        lastStepIndex: stepIndex,
+                                        totalSteps: steps.length,
+                                        status: "in_progress",
+                                    });
+                                }}
                                 className="w-full bg-[#FFD761] hover:bg-[#ffc933] text-black font-pixeboy text-2xl py-4 px-8 border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2"
                             >
                                 Let’s Begin Cooking 🍳

@@ -28,14 +28,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ vi
     if (!supabase) return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
 
     const { videoId } = await params;
-    const { checkedIngredients } = await req.json();
-    if (!Array.isArray(checkedIngredients)) {
-        return NextResponse.json({ error: "checkedIngredients array required" }, { status: 400 });
+    const body = await req.json();
+
+    const update: Record<string, unknown> = {};
+    if (Array.isArray(body.checkedIngredients)) update.checked_ingredients = body.checkedIngredients;
+    if (body.folderId !== undefined) update.folder_id = body.folderId; // null clears the folder
+    if (Object.keys(update).length === 0) {
+        return NextResponse.json({ error: "nothing to update" }, { status: 400 });
     }
 
     const { error } = await supabase
         .from("saved_recipes")
-        .update({ checked_ingredients: checkedIngredients })
+        .update(update)
         .eq("user_id", guard.userId)
         .eq("video_id", videoId);
 
