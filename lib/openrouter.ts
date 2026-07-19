@@ -4,9 +4,9 @@ import type {
     ChatCompletionCreateParamsNonStreaming,
 } from "openai/resources/chat/completions";
 
-// Free model on OpenRouter. stepfun/step-3.5-flash:free was retired (now paid-only),
-// so all routes share this slug — change it here to swap models everywhere.
-export const OPENROUTER_MODEL = "openai/gpt-oss-120b:free";
+// Free model on OpenRouter. stepfun/step-3.5-flash:free and openai/gpt-oss-120b:free were
+// both retired (now paid-only), so all routes share this slug — change it here to swap everywhere.
+export const OPENROUTER_MODEL = "openai/gpt-oss-20b:free";
 
 export const openrouter = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
